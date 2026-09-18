@@ -10,6 +10,11 @@ Usage:
     python collect2.py                              # GMM-BC only
     python collect2.py --root results_train_dp      # diffusion policy only
     python collect2.py --root results_train --root2 results_train_dp
+
+The raw run directories are tens of GB and are gitignored. To reproduce the
+reported numbers from the committed per-seed results instead:
+
+    python collect2.py --from-csv train_results_all.csv
 """
 import argparse, glob, os, re
 import numpy as np
@@ -105,16 +110,23 @@ def report(df, label):
 
 
 def main(a):
-    frames = []
-    if os.path.isdir(a.root):
-        frames.append(load(a.root, "GMM-BC"))
-    if a.root2 and os.path.isdir(a.root2):
-        frames.append(load(a.root2, "diffusion"))
-    if not frames or all(f.empty for f in frames):
-        print("No completed runs found.")
-        return
-    df = pd.concat(frames, ignore_index=True)
-    df.to_csv("train_results_all.csv", index=False)
+    if a.from_csv:
+        df = pd.read_csv(a.from_csv)
+        missing = {"arch", "condition", "seed", "best"} - set(df.columns)
+        if missing:
+            print(f"{a.from_csv} is missing columns: {sorted(missing)}")
+            return
+    else:
+        frames = []
+        if os.path.isdir(a.root):
+            frames.append(load(a.root, "GMM-BC"))
+        if a.root2 and os.path.isdir(a.root2):
+            frames.append(load(a.root2, "diffusion"))
+        if not frames or all(f.empty for f in frames):
+            print("No completed runs found.")
+            return
+        df = pd.concat(frames, ignore_index=True)
+        df.to_csv("train_results_all.csv", index=False)
 
     for arch in df.arch.unique():
         report(df[df.arch == arch], arch)
@@ -127,11 +139,15 @@ def main(a):
         print("\nIf TED is the worst condition under both architectures, the")
         print("finding is a property of the metric, not of behavior cloning.")
 
-    print("\nwrote train_results_all.csv")
+    if not a.from_csv:
+        print("\nwrote train_results_all.csv")
 
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--root", default="results_train")
     p.add_argument("--root2", default=None)
+    p.add_argument("--from-csv", dest="from_csv", default=None,
+                   help="reproduce the analysis from a committed per-seed "
+                        "results CSV instead of raw run directories")
     main(p.parse_args())
