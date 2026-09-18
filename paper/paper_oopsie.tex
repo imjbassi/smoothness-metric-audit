@@ -45,7 +45,12 @@ subset (10 seeds per condition), curating by TED costs roughly a third of
 downstream success relative to random selection of the same size (0.240
 vs.\ 0.360, $p{=}0.0001$, surviving Bonferroni correction); path length is
 directionally harmful with weaker support, while SAL and jerk are not
-statistically distinguishable from not curating at all.
+statistically distinguishable from not curating at all. Replicating the grid
+under a diffusion policy qualifies that headline in both directions: TED is
+still the worst condition, but at five seeds its deficit is no longer
+resolvable, and jerk moves from inert to significantly better than both
+baselines, so a smoothness-adjacent statistic we had written off does have
+curation value under a policy class we had not tested.
 Inspecting individual trajectories shows why: on this task successful
 manipulation requires sustained high-deviation motion through the contact
 phase, while failure manifests as smooth low-amplitude hovering, so a
@@ -386,7 +391,7 @@ gradient steps, learning rate $10^{-4}$) on each curated subset, with 50
 evaluation rollouts (horizon 400) every 150 epochs and the best checkpoint
 reported per seed. Conditions: TED, SAL, jerk, path length, plus three
 references: an \emph{oracle} keeping only successful demonstrations, a
-\emph{random} 50\% subset, and an uncurated size-matched control. Five seeds
+\emph{random} 50\% subset, and an uncurated size-matched control. Ten seeds
 per condition. All filtered pools contain 1950 demonstrations except the
 oracle (716, the number of successes that exist); we therefore treat the
 oracle as a ceiling reference rather than a matched condition.
@@ -463,7 +468,8 @@ we apply the same standard to our own results: the defensible claim is about
 TED, not about smoothness metrics as a class.
 
 What the grid does establish irrespective of any single comparison is that
-none of these metrics recovers usable signal that is demonstrably present.
+under this policy class none of these metrics recovers usable signal that is
+demonstrably present.
 An oracle keeping only true successes reaches 0.892 [0.866, 0.922], roughly
 2.5$\times$ the best metric-curated condition, so the pool contains ample
 information about which demonstrations to keep; the trajectory statistics
@@ -480,6 +486,127 @@ detection AUROC on can/mg (0.706) while landing indistinguishable from SAL
 downstream, whose detection AUROC is near chance (0.454). Detection accuracy
 is at best a coarse predictor of curation value, consistent with the
 decoupling reported by~\citep{bedi-policy} on a different testbed.
+
+\subsection{Running the replication our own limitations demanded}
+\label{sec:crossarch}
+
+An earlier version of this paper listed a compute-matched diffusion-policy
+replication as the clearest piece of follow-up work, on the grounds that a
+result measured on one policy class cannot distinguish a property of the
+metric from a property of behavior cloning. We have now run it, and it
+revises two of our claims. We report it here rather than in future work
+because the corrections run in both directions, and because a paper arguing
+that under-powered evaluation yields confident claims in the wrong direction
+should say plainly when its own scope was narrower than its phrasing.
+
+The replication uses the same curated subsets: same keep fraction, same
+1950-demonstration pools, same 600 epochs of 500 gradient steps, same
+learning rate ($10^{-4}$), and the same evaluation protocol (50 rollouts,
+horizon 400, every 150 epochs, best checkpoint per seed). The policy is a
+conditional U-Net ($[256, 512, 1024]$ down-dims, kernel 5, 8 groups,
+256-dimensional diffusion-step embedding) with EMA (power 0.75), an
+observation horizon of 2, action horizon of 8, and prediction horizon of 16,
+using a DDIM noise scheduler with 10 inference steps. Batch size (256
+vs.\ 100) and the sequence modeling are inherent to the architecture and are
+the only respects in which the two grids differ by more than the policy
+class. We ran five conditions (TED, jerk, and the three references) with
+five seeds each; SAL and path length were not rerun, so the diffusion
+comparison covers two of the four metrics.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+condition & GMM-BC (10 seeds) & diffusion (5 seeds) \\
+\midrule
+oracle (successes only) & 0.892 $\pm$ 0.048 & 0.544 $\pm$ 0.030 \\
+\midrule
+no curation             & 0.380 $\pm$ 0.063 & 0.120 $\pm$ 0.014 \\
+random 50\%             & 0.360 $\pm$ 0.061 & 0.116 $\pm$ 0.017 \\
+\midrule
+jerk                    & 0.332 $\pm$ 0.041 & 0.212 $\pm$ 0.030 \\
+TED                     & 0.240 $\pm$ 0.045 & 0.092 $\pm$ 0.030 \\
+\bottomrule
+\end{tabular}
+\caption{Mean best success rate under both policy classes, restricted to the
+five conditions run under both. TED is the worst condition under each. Jerk
+moves from indistinguishable-from-baseline under BC to above both baselines
+under diffusion. Absolute rates differ by roughly $3\times$ throughout,
+including the oracle.}
+\label{tab:crossarch}
+\end{table}
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+& \multicolumn{2}{c}{vs.\ random 50\%} & \multicolumn{2}{c}{vs.\ no curation} \\
+\cmidrule(lr){2-3}\cmidrule(l){4-5}
+metric & $\Delta$ [95\% CI] & $p$ & $\Delta$ [95\% CI] & $p$ \\
+\midrule
+jerk & $+0.096$ [$+0.068$, $+0.124$] & $\mathbf{0.0007}$ & $+0.092$ [$+0.064$, $+0.116$] & $\mathbf{0.0011}$ \\
+TED  & $-0.024$ [$-0.048$, $+0.004$] & 0.17 & $-0.028$ [$-0.052$, $+0.000$] & 0.11 \\
+\bottomrule
+\end{tabular}
+\caption{Diffusion-policy grid, same procedure as Table~\ref{tab:tests}:
+95\% bootstrap CIs on the difference (20{,}000 resamples) and Welch
+two-sample $p$-values. Bold marks comparisons surviving Bonferroni
+correction across the four tests reported for this architecture
+($\alpha = 0.05/4 = 0.0125$). Random and no-curation are again
+indistinguishable ($\Delta = -0.004$, CI $[-0.020, +0.012]$).}
+\label{tab:crossarch_tests}
+\end{table}
+
+\paragraph{What survived.} TED is the worst condition under both
+architectures (0.240 under BC, 0.092 under diffusion). That is what one
+expects if the deficit belongs to the metric rather than to behavior
+cloning, and it is the part of our headline the replication supports.
+
+\paragraph{What did not.} The harm is statistically robust under BC only.
+Under diffusion the deficit is $-0.024$ against random and $-0.028$ against
+no curation, with intervals admitting zero, and neither survives correction.
+We are careful about the wording here because the tempting summary,
+\emph{TED's harm replicates under diffusion policy}, is not what we
+measured. At five seeds this grid resolves differences of roughly 0.054,
+essentially the same threshold we report for the BC grid, and TED's deficit
+falls below it. The honest statement is that TED's \emph{ordering}
+replicates and its \emph{harm} is established under BC only. Descriptively,
+and not as a tested comparison, the deficit is of broadly similar relative
+size in the two grids, 37\% of the no-curation baseline under BC and 23\%
+under diffusion; we note this to characterize the compressed diffusion
+success scale, not as evidence that the two effects are equal.
+
+\paragraph{What reversed.} Jerk changes sign. Under BC it is
+indistinguishable from both baselines ($p \geq 0.06$); under diffusion it
+beats both by $+0.096$ and $+0.092$, and both comparisons survive
+correction. This is the largest effect in the diffusion grid, and it cuts
+against the reading our own abstract invited: at least one crude trajectory
+statistic, never proposed as a curation metric, has genuine curation value
+under the right policy class. It is the second time in this paper that an
+apparently settled negative result narrowed under more evidence, the first
+being the 5-to-10-seed expansion that removed SAL and jerk from our harm
+claim. We take the recurrence seriously rather than as coincidence: the
+scope conditions on a negative curation result appear to be easy to
+understate. We do not have an account of why the architectures differ, and
+report it as an open result rather than a mechanism.
+
+\paragraph{What we cannot explain.} Absolute success rates differ by roughly
+$3\times$ between the grids at a matched epoch and evaluation budget,
+including the oracle (0.544 vs.\ 0.892), and the diffusion runs in fact saw
+more samples per epoch (batch 256 vs.\ 100). Our earlier reduced-compute
+pilot showed a similar gap, which we attributed at the time to
+under-convergence. Restoring the full epoch and rollout budget did not close
+it, so that explanation was wrong and we have no replacement for it. The
+consequence for reading Table~\ref{tab:crossarch} is concrete: the two
+columns are not at comparable points on the success scale, so we restrict
+cross-architecture claims to ordering and sign rather than magnitude.
+
+We correct within each architecture, since each grid is a separate family of
+comparisons. Pooling all twelve tests instead ($\alpha = 0.05/12 = 0.00417$)
+changes nothing: TED's two BC comparisons and jerk's two diffusion
+comparisons still survive, and path length's $p = 0.0071$ still does not.
 
 \section{Discussion}
 
@@ -559,29 +686,36 @@ Our detection results cover two robomimic tasks (Can and Square) but our
 success-label and downstream-training results cover only Can, because Can is
 the only robomimic task shipping failure-containing splits; extending the
 success-label analysis requires moving to a different benchmark such as
-LIBERO. We use one policy class (GMM behavior cloning); the detection
-results are policy-free but the downstream results may differ under sequence
-models or diffusion policies. We piloted a diffusion-policy replication of
-the downstream grid on a subset of conditions (TED, jerk, random,
-no-curation, oracle; 3 seeds) under a reduced-compute configuration (300
-vs.\ 600 training epochs, 30 vs.\ 50 evaluation rollouts, 10-step DDIM
-inference) adopted to keep wall-clock time tractable. Absolute success
-rates were substantially lower than the BC grid across every condition,
-including the oracle (0.489 vs.\ 0.892), indicating the reduced
-configuration had not reached a comparable operating point rather than
-reflecting a property of the architecture. We do not consider this pilot
-adequately powered or matched to report as a finding, and do not include
-its numbers above; a diffusion-policy replication under compute matched to
-the BC grid is the clearest piece of follow-up work.
+LIBERO. Our downstream results now cover two policy classes (GMM behavior
+cloning and a diffusion policy); the detection results are policy-free. The
+cross-architecture grid of Section~\ref{sec:crossarch} carries three
+limitations of its own. It covers two of the four metrics, since SAL and
+path length were not rerun under diffusion, so our claim that TED ranks
+worst under both architectures rests on a five-condition subset on the
+diffusion side against a seven-condition grid on the BC side. It uses five
+seeds rather than ten, resolving differences of roughly 0.054; TED's
+diffusion deficit ($-0.028$, CI $[-0.052, +0.000]$) falls below that, which
+is why we report its ordering as replicating and its harm as established
+under BC only. And absolute success rates remain roughly $3\times$ lower
+under diffusion at a matched epoch and evaluation budget, including the
+oracle (0.544 vs.\ 0.892). We previously attributed that gap to
+under-convergence in a reduced-compute pilot; restoring the full budget did
+not close it, so that explanation was wrong and we have none to replace it.
+Because the grids sit at different points on the success scale, we restrict
+cross-architecture claims to ordering and sign. Multiple-comparison
+correction is applied within each architecture, as each grid is a separate
+family; pooling all twelve tests ($\alpha = 0.00417$) leaves every reported
+conclusion unchanged.
 Our TED is a reimplementation from the \rinse{} appendix, not the authors'
 released code; as a sanity check it broadly agrees with SAL's ranking on the
 clean proficient-human data, but a discrepancy with the reference
 implementation cannot be excluded, and we will replace it if code becomes
 available. The tightest duration band retains only 7 negatives, and its
-role in our argument is corroborative, not primary. Downstream conditions
-use 10 seeds; at this power, differences smaller than roughly 0.05 in mean
-success rate are not resolvable, which is why we report SAL and jerk as
-indistinguishable from the baselines rather than as harmful. The oracle training
+role in our argument is corroborative, not primary. The BC downstream
+conditions use 10 seeds; at this power, differences smaller than roughly
+0.05 in mean success rate are not resolvable, which is why we report SAL and
+jerk as indistinguishable from the baselines rather than as harmful under
+that architecture. The oracle training
 condition has a smaller pool (716 vs.\ 1950) and is reported as a ceiling,
 not a matched comparison. Finally, our success-label experiments use
 machine-generated failures (can/mg); failure modes of human teleoperators
@@ -610,6 +744,13 @@ the same size, a result robust to correction for multiple comparisons, while
 the other metrics are directionally below the baselines without being
 distinguishable from them. An oracle reaches 0.892 on the same pool, so the
 signal these metrics fail to find is unambiguously present in the data.
+Replicating the grid under a diffusion policy narrowed the claim again: TED
+still ranks worst under both architectures, but at five seeds its deficit
+there is not resolvable, and jerk reverses from inert to better than both
+baselines. Twice now, a negative result of ours has held its ordering while
+losing its scope under more evidence, which we take as the paper's most
+transferable lesson: a curation metric's failure is reported far more
+readily than the conditions under which it was measured.
 
 \bibliographystyle{plainnat}
 \begin{thebibliography}{9}
