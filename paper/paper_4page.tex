@@ -305,9 +305,11 @@ diffusion); detection results are policy-free. The diffusion grid covers two
 of the four metrics at five seeds, so TED's cross-architecture claim is
 about ordering, not harm; its absolute rates stay below BC in every
 condition at a matched epoch and evaluation budget, from $1.6\times$ on the
-oracle to $3.1\times$ on the baselines, which rules out the
-under-convergence explanation we gave for the same gap in an earlier pilot
-and leaves it unexplained. Corrections are applied within each architecture; pooling all
+oracle to $3.1\times$ on the baselines. The training curves rule out
+under-training, the explanation we gave for the same gap in an earlier
+pilot: the diffusion runs improve by $+0.017$ between the first and second
+halves of training against a $0.044$ noise floor, where the BC runs improve
+by $+0.092$ (supplementary). The gap is unexplained. Corrections are applied within each architecture; pooling all
 twelve tests ($\alpha = 0.00417$) changes no conclusion. TED is our
 reimplementation from the published
 appendix, not the authors' code; it agrees broadly with SAL's ranking on
@@ -531,6 +533,26 @@ inference steps, batch 256, 600 epochs of 500 gradient steps, lr $10^{-4}$,
 50 rollouts (horizon 400) every 150 epochs. At five seeds this grid resolves
 differences of roughly 0.054.}
 \end{table}
+
+\paragraph{Training curves and the choice of estimator.} The diffusion runs
+show no measurable improvement over the second half of training. Averaged
+across all 25 runs, mean success in the last four of the eight evaluations
+exceeds the first four by $+0.017$, against a binomial noise floor of
+$0.044$ for 50-rollout evaluations, and only 3 of 25 runs improve by more
+than one noise standard deviation; per-run variation across the eight
+evaluations has a standard deviation $1.01\times$ the noise floor. The same
+measurement on the BC grid gives $+0.092$, with 56 of 70 runs improving and
+a ratio of $1.46\times$. The flatness is therefore a property of the
+diffusion runs rather than of the evaluation protocol, and it rules out
+under-training as the explanation for the absolute gap. Separately, we
+report the best checkpoint per seed, a maximum over eight evaluations and so
+biased upward; the bias is symmetric, since both grids are evaluated eight
+times. Recomputing with the mean over the eight evaluations leaves all
+conclusions intact except one worth recording: TED versus no curation under
+diffusion reaches $p = 0.0110$ and would survive that architecture's
+threshold ($\alpha = 0.0125$), where the reported best-of-eight version does
+not ($p = 0.11$); TED versus random stays non-significant under both. We
+report the conservative version.
 
 \section{Secondary setting: can/paired}
 

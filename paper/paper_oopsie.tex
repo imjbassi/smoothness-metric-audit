@@ -502,7 +502,19 @@ should say plainly when its own scope was narrower than its phrasing.
 The replication uses the same curated subsets: same keep fraction, same
 1950-demonstration pools, same 600 epochs of 500 gradient steps, same
 learning rate ($10^{-4}$), and the same evaluation protocol (50 rollouts,
-horizon 400, every 150 epochs, best checkpoint per seed). The policy is a
+horizon 400, every 150 epochs, best checkpoint per
+seed).\footnote{Reporting the best checkpoint per seed is a maximum over the
+eight evaluations each run receives, and is therefore biased upward; both
+grids are evaluated eight times, so the bias is symmetric across
+architectures. Recomputing every comparison with the \emph{mean} over the
+eight evaluations instead leaves all conclusions intact, with one exception
+we record here rather than leave for a reader to rediscover: TED versus no
+curation under diffusion reaches $p = 0.0110$ under the mean estimator and
+would survive this architecture's correction threshold
+($\alpha = 0.0125$), whereas under the reported best-of-eight estimator it
+does not ($p = 0.11$). TED versus random remains non-significant under both
+($p = 0.12$ and $p = 0.17$). We report the conservative version throughout.}
+The policy is a
 conditional U-Net ($[256, 512, 1024]$ down-dims, kernel 5, 8 groups,
 256-dimensional diffusion-step embedding) with EMA (power 0.75), an
 observation horizon of 2, action horizon of 8, and prediction horizon of 16,
@@ -599,7 +611,22 @@ oracle (0.544 vs.\ 0.892) to $3.1\times$ on the two baselines, at a matched
 epoch and evaluation budget in which the diffusion runs in fact saw more
 samples per epoch (batch 256 vs.\ 100). The gap is not a uniform offset: it
 is widest exactly on the mixed-quality pools the curation comparison runs
-on. Our earlier reduced-compute
+on.
+
+We can at least rule one explanation out, including the one we gave
+ourselves. The diffusion runs show no measurable improvement over the second
+half of training: averaged across all 25 runs, mean success in the last four
+evaluations exceeds the first four by $+0.017$, against a binomial noise
+floor of $0.044$ for 50-rollout evaluations, and only 3 of 25 runs improve
+by more than one noise standard deviation. Per-run variation across the
+eight evaluations has a standard deviation $1.01\times$ the noise floor,
+indistinguishable from sampling noise alone. The identical measurement on
+the BC grid gives $+0.092$, with 56 of 70 runs improving and a ratio of
+$1.46\times$, so the flatness belongs to the diffusion runs and not to our
+evaluation protocol. These policies converge early and stop. Under-training
+was our own explanation for the reduced-compute pilot, and it does not
+survive contact with the training curves; we retire it here without being
+able to put anything in its place. Our earlier reduced-compute
 pilot showed a similar gap, which we attributed at the time to
 under-convergence. Restoring the full epoch and rollout budget did not close
 it, so that explanation was wrong and we have no replacement for it. The
@@ -702,9 +729,13 @@ diffusion deficit ($-0.028$, CI $[-0.052, +0.000]$) falls below that, which
 is why we report its ordering as replicating and its harm as established
 under BC only. And absolute success rates remain lower under diffusion in
 every condition at a matched epoch and evaluation budget, from $1.6\times$
-on the oracle (0.544 vs.\ 0.892) to $3.1\times$ on the two baselines. We previously attributed that gap to
-under-convergence in a reduced-compute pilot; restoring the full budget did
-not close it, so that explanation was wrong and we have none to replace it.
+on the oracle (0.544 vs.\ 0.892) to $3.1\times$ on the two baselines. We
+previously attributed that gap to under-convergence in a reduced-compute
+pilot; restoring the full budget did not close it, and the training curves
+rule that explanation out directly, since the diffusion runs improve by only
+$+0.017$ between the first and second halves of training against a $0.044$
+noise floor while the BC runs improve by $+0.092$. That explanation was
+ours, it was wrong, and we have none to replace it.
 Because the grids sit at different points on the success scale, we restrict
 cross-architecture claims to ordering and sign. Multiple-comparison
 correction is applied within each architecture, as each grid is a separate
