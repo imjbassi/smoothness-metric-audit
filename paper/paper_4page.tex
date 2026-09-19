@@ -50,9 +50,11 @@ where duration cannot carry information, both published metrics sit at or
 below chance against task success, and curating training data by the
 contact-aware one costs a third of downstream policy success relative to
 random selection of the same size (10 seeds, $p{=}0.0001$ after correction
-for multiple comparisons). Whether a duration control is applied is not a
-robustness detail: it decides the sign of the reported result. We argue it belongs in the minimum reporting set for
-any demonstration-scoring claim.
+for multiple comparisons). Under a diffusion policy that ordering holds and
+jerk inverts again, beating both baselines. Whether a duration control is
+applied is not a robustness detail: it decides the sign of the reported
+result. We argue it belongs in the minimum reporting set for any
+demonstration-scoring claim.
 \end{abstract}
 
 \section{The design choice underneath the claim}
@@ -235,6 +237,18 @@ the same standard. Random and no-curation are themselves indistinguishable
 to \emph{which} demonstrations it discards, not to pool size. Full grid and
 per-comparison tests in supplementary.
 
+\paragraph{Across architectures.} A diffusion-policy replication (five
+conditions, five seeds, matched epoch and evaluation budget; supplementary)
+inverts one metric and leaves the other in place. TED is worst under both
+(0.240 BC, 0.092 diffusion), which is what one expects if the deficit
+belongs to the metric; but at five seeds the grid resolves only differences
+above 0.054, and TED's deficit there ($-0.028$, CI $[-0.052, +0.000]$) falls
+below it, so the \emph{ordering} replicates while the \emph{harm} stays
+established under BC only. Jerk reverses sign, beating both baselines by
+$+0.096$ and $+0.092$ ($p = 0.0007$, $0.0011$, surviving correction) after
+being inert under BC: the crude baseline has curation value under the right
+policy class.
+
 Qualitative inspection explains the direction (Figure~\ref{fig:qual}). On
 this task successful manipulation requires sustained high-deviation motion
 through the contact phase, while failure looks like smooth, low-amplitude
@@ -286,14 +300,15 @@ remove failures from mixed pools; that gap is where the inversion lives.
 Detection results cover two robomimic tasks; the success-label and training
 results cover one, because Can is the only robomimic task with
 failure-containing splits, and extending them requires a different benchmark
-such as LIBERO. One policy class (GMM behavior cloning); detection results
-are policy-free, downstream results may differ under diffusion or sequence
-models. A pilot diffusion-policy replication (5 conditions, 3 seeds, reduced
-epochs/rollouts for tractability) showed substantially lower absolute
-success everywhere, including the oracle (0.489 vs.\ 0.892 for BC),
-indicating an under-converged configuration rather than an architecture
-effect; we do not report its numbers and flag a compute-matched replication
-as the clearest follow-up. TED is our reimplementation from the published
+such as LIBERO. Two policy classes downstream (GMM behavior cloning,
+diffusion); detection results are policy-free. The diffusion grid covers two
+of the four metrics at five seeds, so TED's cross-architecture claim is
+about ordering, not harm; its absolute rates stay $3\times$ below BC at a
+matched epoch and evaluation budget, which rules out the under-convergence
+explanation we gave for the same gap in an earlier pilot and leaves it
+unexplained. Corrections are applied within each architecture; pooling all
+twelve tests ($\alpha = 0.00417$) changes no conclusion. TED is our
+reimplementation from the published
 appendix, not the authors' code; it agrees broadly with SAL's ranking on
 clean data as a sanity check, but a discrepancy cannot be excluded. The
 tightest duration bands are small ($n{=}40$, $n{=}30$), and we treat them as
@@ -471,6 +486,50 @@ resolvable on this grid. A prior 5-seed version of this analysis reported
 all four metrics as underperforming both baselines; that pattern held only
 for TED and path length once seeds were doubled, and we report the corrected
 result.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+condition & GMM-BC (10 seeds) & diffusion (5 seeds) \\
+\midrule
+oracle      & 0.892 $\pm$ 0.048 & 0.544 $\pm$ 0.030 \\
+no curation & 0.380 $\pm$ 0.063 & 0.120 $\pm$ 0.014 \\
+random 50\% & 0.360 $\pm$ 0.061 & 0.116 $\pm$ 0.017 \\
+jerk        & 0.332 $\pm$ 0.041 & 0.212 $\pm$ 0.030 \\
+TED         & 0.240 $\pm$ 0.045 & 0.092 $\pm$ 0.030 \\
+\bottomrule
+\end{tabular}
+\caption{Mean best success rate for the five conditions run under both
+policy classes.}
+\label{tab:crossarch}
+\end{table}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+& \multicolumn{2}{c}{vs.\ random 50\%} & \multicolumn{2}{c}{vs.\ no curation} \\
+\cmidrule(lr){2-3}\cmidrule(l){4-5}
+metric & $\Delta$ [95\% CI] & $p$ & $\Delta$ [95\% CI] & $p$ \\
+\midrule
+jerk & $+0.096$ [$+0.068$, $+0.124$] & $\mathbf{0.0007}$ & $+0.092$ [$+0.064$, $+0.116$] & $\mathbf{0.0011}$ \\
+TED  & $-0.024$ [$-0.048$, $+0.004$] & 0.17 & $-0.028$ [$-0.052$, $+0.000$] & 0.11 \\
+\bottomrule
+\end{tabular}
+\caption{Diffusion-policy grid (Table~\ref{tab:crossarch}), same procedure
+as the BC tests above: 95\% bootstrap CIs on the difference (20{,}000
+resamples), Welch two-sample $p$-values, Bonferroni across the four tests
+reported for this architecture ($\alpha = 0.05/4 = 0.0125$). Random and no
+curation are indistinguishable ($\Delta = -0.004$, CI $[-0.020, +0.012]$).
+Policy: conditional U-Net ($[256,512,1024]$ down-dims, kernel 5, 8 groups),
+EMA power 0.75, observation/action/prediction horizons 2/8/16, DDIM with 10
+inference steps, batch 256, 600 epochs of 500 gradient steps, lr $10^{-4}$,
+50 rollouts (horizon 400) every 150 epochs. At five seeds this grid resolves
+differences of roughly 0.054.}
+\end{table}
 
 \section{Secondary setting: can/paired}
 
