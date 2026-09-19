@@ -303,10 +303,11 @@ failure-containing splits, and extending them requires a different benchmark
 such as LIBERO. Two policy classes downstream (GMM behavior cloning,
 diffusion); detection results are policy-free. The diffusion grid covers two
 of the four metrics at five seeds, so TED's cross-architecture claim is
-about ordering, not harm; its absolute rates stay $3\times$ below BC at a
-matched epoch and evaluation budget, which rules out the under-convergence
-explanation we gave for the same gap in an earlier pilot and leaves it
-unexplained. Corrections are applied within each architecture; pooling all
+about ordering, not harm; its absolute rates stay below BC in every
+condition at a matched epoch and evaluation budget, from $1.6\times$ on the
+oracle to $3.1\times$ on the baselines, which rules out the
+under-convergence explanation we gave for the same gap in an earlier pilot
+and leaves it unexplained. Corrections are applied within each architecture; pooling all
 twelve tests ($\alpha = 0.00417$) changes no conclusion. TED is our
 reimplementation from the published
 appendix, not the authors' code; it agrees broadly with SAL's ranking on

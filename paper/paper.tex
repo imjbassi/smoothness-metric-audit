@@ -508,8 +508,9 @@ TED                     & 0.240 $\pm$ 0.045 & 0.092 $\pm$ 0.030 \\
 \caption{Mean best success rate under both policy classes, restricted to the
 five conditions run under both. TED is the worst condition under each. Jerk
 moves from indistinguishable-from-baseline under BC to above both baselines
-under diffusion. Absolute rates differ by roughly $3\times$ throughout,
-including the oracle.}
+under diffusion. Absolute rates are lower under diffusion in every
+condition, by factors ranging from $1.6\times$ (oracle) to $3.1\times$ (the
+two baselines).}
 \label{tab:crossarch}
 \end{table}
 
@@ -566,10 +567,12 @@ against it, the first being detection inside a duration-matched band. We do
 not have an account of why the architectures differ here, and report it as
 an open result rather than a mechanism.
 
-Third, absolute success rates differ by roughly $3\times$ between the two
-grids at a matched epoch and evaluation budget, including the oracle
-(0.544 vs.\ 0.892), and the diffusion runs in fact saw more samples per
-epoch (batch 256 vs.\ 100). An earlier reduced-compute pilot showed a
+Third, absolute success rates are lower under diffusion in every condition,
+by factors ranging from $1.6\times$ on the oracle (0.544 vs.\ 0.892) to
+$3.1\times$ on the two baselines, at a matched epoch and evaluation budget
+in which the diffusion runs in fact saw more samples per epoch (batch 256
+vs.\ 100). The gap is therefore not a uniform offset: it is widest exactly
+on the mixed-quality pools the curation comparison runs on. An earlier reduced-compute pilot showed a
 similar gap, which we attributed at the time to under-convergence; that
 explanation no longer holds and we have no replacement for it. The
 consequence for reading Table~\ref{tab:crossarch} is concrete: the two
@@ -678,9 +681,9 @@ diffusion side against a seven-condition grid on the BC side. It uses five
 seeds rather than ten, resolving differences of roughly 0.054; TED's
 diffusion deficit ($-0.028$, CI $[-0.052, +0.000]$) falls below that, which
 is why we report its ordering as replicating and its harm as established
-under BC only. And absolute success rates remain roughly $3\times$ lower
-under diffusion at a matched epoch and evaluation budget, including the
-oracle (0.544 vs.\ 0.892). We previously attributed that gap to
+under BC only. And absolute success rates remain lower under diffusion in
+every condition at a matched epoch and evaluation budget, from $1.6\times$
+on the oracle (0.544 vs.\ 0.892) to $3.1\times$ on the two baselines. We previously attributed that gap to
 under-convergence in a reduced-compute pilot; restoring the full epoch and
 rollout budget did not close it, so that explanation was wrong and we have
 none to replace it. Because the two grids sit at different points on the
