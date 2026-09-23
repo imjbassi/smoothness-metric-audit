@@ -1,0 +1,593 @@
+% 4-page anonymized workshop submission.
+% Compile with pdflatex. Requires fig_main.pdf in the same directory
+% (or adjust \graphicspath).
+% This is a COMPRESSED, ANONYMIZED derivative of the full 8-page paper.
+% Do not edit the full version from here.
+\documentclass[10pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\graphicspath{{../figures/}{./}}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+\usepackage{multirow}
+
+% tighten spacing to fit 4 pages
+\titlespacing*{\section}{0pt}{1.4ex plus 0.3ex}{0.8ex}
+\titlespacing*{\subsection}{0pt}{1.1ex plus 0.2ex}{0.5ex}
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+\setlength{\abovecaptionskip}{4pt}
+
+\newcommand{\rinse}{\textsc{rinse}}
+
+\title{\vspace{-3em}Episode Length Is a Hidden Design Choice:\\
+Demonstration-Curation Metrics Invert Once You Control For It}
+
+\author{Anonymous Author(s)\\ \small Affiliation withheld for review}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\begin{abstract}
+\noindent
+Trajectory-smoothness scores are increasingly used to curate
+imitation-learning demonstrations, on the premise that smoother
+demonstrations are better ones. We show that on real robomimic data these
+scores are largely measuring \emph{how long the episode took}, and that the
+direction of their empirical claim flips once episode duration is held
+fixed. On can/mh, Spectral Arc Length separates better from worse
+teleoperators with AUROC 0.952, but episode length alone achieves 0.957,
+and inside a duration-matched band SAL falls to 0.628 while raw mean jerk,
+the crude baseline such metrics are motivated against, rises to 0.896. The
+pattern replicates without retuning on square/mh (SAL 0.898$\to$0.480, jerk
+0.431$\to$0.896, length control 0.936$\to$0.407). On a fixed-horizon split
+where duration cannot carry information, both published metrics sit at or
+below chance against task success, and curating training data by the
+contact-aware one costs a third of downstream policy success relative to
+random selection of the same size (10 seeds, $p{=}0.0001$ after correction
+for multiple comparisons). Under a diffusion policy that ordering holds and
+jerk inverts again, beating both baselines. Whether a duration control is
+applied is not a robustness detail: it decides the sign of the reported
+result. We argue it belongs in the minimum reporting set for any
+demonstration-scoring claim.
+\end{abstract}
+
+\section{The design choice underneath the claim}
+
+A demonstration-curation metric is evaluated by showing that it ranks known
+good demonstrations above known bad ones. That evaluation contains a design
+choice that is almost never reported: whether the good and bad
+demonstrations differ in \emph{duration}. When they do, and in human
+teleoperation data they systematically do, because worse operators take
+longer, any statistic that grows with trajectory length inherits an
+apparent discriminative power that has nothing to do with what the metric
+was designed to measure.
+
+This is not a hypothetical failure mode. Prior audit work on a
+synthetic-defect testbed found that most curation metrics examined achieved
+near-perfect detection scores by proxying episode
+length~\citep{bedi-policy}, and controlled for it by truncating all
+trajectories to a fixed prefix. We ask what happens to \emph{named,
+published} metrics on \emph{real} operator labels when the same control is
+applied, and find that the control does not merely shrink the effect. It
+reverses the ranking. The metric that looks best without the control is
+near chance with it; the crude baseline it was introduced to supersede
+becomes the strongest detector.
+
+We report three things. (1) On two robomimic tasks, smoothness-metric
+performance tracks the episode-length baseline almost exactly, and collapses
+under duration matching. (2) On a fixed-horizon split where duration is
+constant by construction, both metrics of a recent published method are at
+or below chance against task success, with the contact-aware metric
+inverted. (3) Filtering training data by these scores produces policies
+worse than no filtering at all. The substantive contribution is not that
+these particular metrics are weak; it is that a single unreported
+preprocessing decision determines the sign of the conclusion, which makes it
+a reporting requirement rather than a robustness check.
+
+\textbf{Related work.} \rinse{}~\citep{rinse} and PSD~\citep{psd} are recent
+smoothness- and spectral-power-based curation methods; both validate on
+success-filtered pools, and neither evaluates on data containing failures.
+The audit line we build on~\citep{bedi-audit,bedi-policy,bedi-phase}
+established the detection-vs-curation decoupling and documented the
+length confound, but on generic metric implementations, synthetically
+injected defects, and with length controlled by truncation. We extend it to
+named published metrics, real operator and success labels, and a
+fixed-horizon split where the confound is excluded by construction rather
+than by discarding signal. Separately,~\citep{empirical-science,roboeval}
+argue that success rate under-describes policy quality
+and~\citep{benchmarking-audit} shows benchmarks admit shortcut solutions;
+our result is the data-side complement, where the scores used to
+\emph{select} training data are themselves shortcut-driven.
+
+\section{Setup}
+
+\textbf{Metrics.} Spectral Arc Length (SAL) and Trajectory-Envelope Distance
+(TED) as specified by \rinse{}~\citep{rinse}, a recent smoothness-based
+curation method; TED is reimplemented from its appendix, including the
+gripper-contact partition that is its distinguishing feature. Baselines:
+mean jerk (third-difference magnitude of end-effector position) and
+end-effector path length. All are computed from proprioception at 20\,Hz and
+returned as badness scores. We also report the per-timestep normalization
+SAL$/T$, since SAL's arc length sums over $T/2$ spectral bins and therefore
+grows with duration by construction.
+
+\textbf{Data.} Public robomimic~\citep{robomimic} low-dim. \emph{can/mh} and
+\emph{square/mh}: 300 successful human demonstrations each with released
+operator skill tiers (better/okay/worse, 100 each); durations 98--1050 and
+123--1051 steps. \emph{can/mg}: 3900 scripted demonstrations, 18.4\%
+successful, every episode exactly 150 steps. Can is the only robomimic task
+shipping failure-containing splits, so the success-label analysis is
+confined to it by benchmark availability rather than by choice.
+
+\textbf{Controls.} Two, applied independently. \emph{Normalization}: divide
+by $T{-}1$. \emph{Duration matching}: restrict to episode-length bands of
+increasing tightness, and report the AUROC of episode length itself in each
+band: a band is only a control where that number is near 0.5. All AUROCs
+carry 95\% bootstrap CIs (2000 resamples); full tables are in the
+supplementary material.
+
+\section{The confound, and what controlling for it does}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\linewidth]{fig_main.pdf}
+\caption{\textbf{Smoothness tracks duration, not quality.} (a) Skill AUROC
+on can/mh across tightening duration bands. SAL (red) follows the
+episode-length baseline (gray, dashed) down; jerk (blue) rises as the
+confound is removed; the two cross. In the tightest band length itself is at
+chance (0.485), confirming the control. (b) On the fixed-horizon can/mg
+split, duration carries no information by construction; against task
+success, jerk retains signal while SAL is at chance and TED is inverted.}
+\label{fig:main}
+\end{figure}
+
+\textbf{Uncontrolled, SAL looks excellent, and so does a stopwatch.} On
+can/mh, SAL separates better from worse operators at AUROC 0.952 [0.922,
+0.975]. Episode length alone achieves 0.957 [0.929, 0.980]. SAL's
+correlation with $T$ is $+0.97$, and its tier means (100.4 / 57.5 / 44.9)
+track the tier durations (304 / 181 / 143 steps) almost linearly.
+
+\textbf{Both controls remove it.} Normalization drops SAL to 0.582 [0.497,
+0.662] and its length correlation to $+0.07$. Duration matching does the
+same thing more directly: across four bands SAL falls monotonically while
+jerk rises monotonically, and they cross (Table~\ref{tab:both},
+Figure~\ref{fig:main}a). In the band where episode length is itself at
+chance, SAL's CI includes 0.5 and jerk reaches 0.896.
+
+\textbf{It replicates on a second task, unchanged.} Applying the identical
+pipeline to square/mh, with no retuning: SAL's duration correlation is
+$+0.96$, its uncontrolled AUROC 0.898 against a length baseline of 0.936,
+and in the controlled band SAL sits at 0.480 while jerk reaches 0.896,
+the same value it reaches in Can's tightest band. Two task-specific
+differences are worth stating rather than smoothing over: jerk is
+\emph{inverted} on Square before any control (0.431, versus 0.584 on Can),
+and path length stays strong in Square's controlled band where it collapsed
+on Can. The uncontrolled ranking of metrics is task-dependent; the fact that
+SAL's advantage does not survive the control is not.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{llcccc}
+\toprule
+& & \multicolumn{4}{c}{duration band, loosest $\to$ tightest} \\
+\cmidrule(l){3-6}
+& & full & band 2 & band 3 & controlled \\
+\midrule
+\multirow{4}{*}{\rotatebox{90}{can/mh}}
+& SAL        & 0.952 & 0.793 & 0.759 & 0.628 \\
+& jerk       & 0.584 & 0.862 & 0.906 & \textbf{0.896} \\
+& TED        & 0.558 & 0.653 & 0.631 & 0.359 \\
+& length $T$ & 0.957 & 0.801 & 0.753 & \textbf{0.485} \\
+\midrule
+\multirow{4}{*}{\rotatebox{90}{square/mh}}
+& SAL        & 0.898 & 0.759 & 0.529 & 0.480 \\
+& jerk       & 0.431 & 0.570 & 0.782 & \textbf{0.896} \\
+& TED        & 0.663 & 0.685 & 0.599 & 0.557 \\
+& length $T$ & 0.936 & 0.824 & 0.613 & \textbf{0.407} \\
+\bottomrule
+\end{tabular}
+\caption{Better-vs-worse operator AUROC as the duration band tightens, on
+two tasks. The \emph{length} row is the control: only the rightmost column
+is duration-matched. SAL falls and jerk rises in lockstep with it, on both
+tasks. Bootstrap CIs, exact band edges, and sample sizes are in the
+supplementary material; the tightest bands are small ($n{=}40$ and $n{=}30$)
+and the claim rests on the monotone trend rather than any single cell.}
+\label{tab:both}
+\end{table}
+
+\textbf{With duration removed by construction, the metrics fail outright.}
+The can/mg split fixes every episode at 150 steps, so no metric can exploit
+duration and the length baseline is exactly 0.500. Against the real
+task-success label, jerk reaches 0.706, SAL 0.454, path length 0.421, and
+TED 0.376 (Figure~\ref{fig:main}b). TED's inversion means filtering by TED
+\emph{preferentially retains failed demonstrations}.
+
+\section{Does it matter downstream? Yes, in the harmful direction}
+
+Detection AUROC is not what practitioners care about, so we filter can/mg by
+each metric at a 50\% keep fraction, hold the training pool size fixed at
+1950 demonstrations, and train GMM behavior-cloning policies (10 seeds each,
+50 rollouts per evaluation, best checkpoint per seed). Mean best success
+rates: no curation 0.380, random 50\% subset 0.360, SAL 0.332, jerk 0.332,
+path length 0.310, TED 0.240. An oracle keeping only true successes reaches
+0.892, roughly $2.5\times$ the best metric, so the signal is
+unambiguously present in the pool and the metrics are not finding it.
+
+Testing those gaps properly (difference-of-means bootstrap, 20{,}000
+resamples, plus Welch two-sample tests, Bonferroni-corrected across eight
+comparisons at $\alpha = 0.006$): \textbf{TED} is below random by $-0.120$
+[$-0.166$, $-0.076$], $p = 0.0001$, and below no-curation by $-0.140$,
+$p < 0.0001$; both survive correction. Path length is directionally harmful
+with weaker support ($p = 0.037$, $p = 0.0071$), clearing conventional
+significance but not correction. SAL and jerk are below both baselines in
+the mean but not distinguishable from them ($p \geq 0.06$). We report them
+that way rather than as evidence of harm: an earlier 5-seed pass appeared to
+show all four metrics underperforming, and that pattern did not survive the
+seed expansion. Since this paper's argument is that under-powered evaluation
+yields confident claims in the wrong direction, we hold our own results to
+the same standard. Random and no-curation are themselves indistinguishable
+($\Delta = -0.020$, CI spanning zero), so a metric's deficit is attributable
+to \emph{which} demonstrations it discards, not to pool size. Full grid and
+per-comparison tests in supplementary.
+
+\paragraph{Across architectures.} A diffusion-policy replication (five
+conditions, five seeds, matched epoch and evaluation budget; supplementary)
+inverts one metric and leaves the other in place. TED is worst under both
+(0.240 BC, 0.092 diffusion), which is what one expects if the deficit
+belongs to the metric; but at five seeds the grid resolves only differences
+above 0.054, and TED's deficit there ($-0.028$, CI $[-0.052, +0.000]$) falls
+below it, so the \emph{ordering} replicates while the \emph{harm} stays
+established under BC only. Jerk reverses sign, beating both baselines by
+$+0.096$ and $+0.092$ ($p = 0.0007$, $0.0011$, surviving correction) after
+being inert under BC: the crude baseline has curation value under the right
+policy class.
+
+Qualitative inspection explains the direction (Figure~\ref{fig:qual}). On
+this task successful manipulation requires sustained high-deviation motion
+through the contact phase, while failure looks like smooth, low-amplitude
+hovering, a robot that lifts and never commits to a placement. A metric
+rewarding smoothness is measuring commitment with the sign flipped.
+
+\begin{figure}[!ht]
+\centering
+\includegraphics[width=0.82\linewidth]{fig_qual_pair.pdf}
+\caption{\textbf{Failure is smooth; success is not.} A successful (left) and
+failed (right) can/mg demonstration, with TED's contact-segment boundaries
+(red), per-segment B\'ezier envelope (dashed), and envelope residual
+(bottom). The success carries one high-deviation segment spanning timesteps
+12--96, coinciding with the descend-and-grasp. In the failure the only
+comparable deviation is the free-space approach (0--24); the remaining 126
+steps are a flat tail of repeated gripper cycles that never complete a
+placement. TED averages over the alignment path and so rates the failure as
+the cleaner trajectory (0.042 vs.\ 0.144). Illustrative of the mechanism;
+the quantitative claim is Figure~\ref{fig:main}b.}
+\label{fig:qual}
+\end{figure}
+
+\section{What should be reported}
+
+The episode-length confound is a substrate effect in a precise sense: it is
+a property of how the evaluation data was assembled, invisible in the
+metric's definition, that determines whether the reported effect points up
+or down. It is cheap to check and cheap to report, and we suggest three
+things belong in any demonstration-scoring result.
+
+\textbf{Report the length baseline.} Episode length alone, scored as if it
+were a curation metric, against the same label. If it matches the proposed
+metric, the proposed metric has not yet been shown to do anything else. This
+one number would have flagged the issue in both tasks we examined.
+
+\textbf{Report a duration-controlled condition, and report its control.} A
+duration-matched band or a normalization, \emph{with} the length AUROC
+inside that condition, so a reader can verify the control worked. A band
+where length still scores 0.82 is not a control, and we report our own
+intermediate bands partly to make that visible.
+
+\textbf{Separate the label from the deployment target.} Skill tiers and task
+success are different labels and these metrics behave oppositely on them.
+Curation methods are validated on success-filtered pools and deployed to
+remove failures from mixed pools; that gap is where the inversion lives.
+
+\section{Limitations}
+
+Detection results cover two robomimic tasks; the success-label and training
+results cover one, because Can is the only robomimic task with
+failure-containing splits, and extending them requires a different benchmark
+such as LIBERO. Two policy classes downstream (GMM behavior cloning,
+diffusion); detection results are policy-free. The diffusion grid covers two
+of the four metrics at five seeds, so TED's cross-architecture claim is
+about ordering, not harm, and its absolute rates stay 1.6--3.1$\times$
+below BC for reasons we cannot yet identify; the training curves rule out
+under-training (supplementary). TED is our reimplementation from the
+published
+appendix, not the authors' code; it agrees broadly with SAL's ranking on
+clean data as a sanity check, but a discrepancy cannot be excluded. The
+tightest duration bands are small ($n{=}40$, $n{=}30$), and we treat them as
+the endpoint of a trend rather than as standalone evidence. Failures in
+can/mg are machine-generated; human failure modes may differ, and a
+human-failure pool is the clearest next step.
+
+{\small
+\bibliographystyle{plainnat}
+\begin{thebibliography}{9}
+\bibitem[Kulkarni et al.(2026)]{rinse}
+S.~Kulkarni, R.~Dhar, Y.~Cui.
+\newblock Learning from the Best: Smoothness-Driven Metrics for Data Quality
+in Imitation Learning. arXiv:2604.23000, 2026.
+
+\bibitem[Bedi(2026a)]{bedi-audit}
+A.~Bedi.
+\newblock Auditing Demonstration Curation Metrics: Action-Only Scorers Fail
+on the Structural Defects That Degrade Imitation Policies.
+arXiv:2606.05588, 2026.
+
+\bibitem[Bedi(2026b)]{bedi-policy}
+A.~Bedi.
+\newblock What Demonstration Curation Metrics Do to Your Policy.
+arXiv:2606.10229, 2026.
+
+\bibitem[Bedi(2026c)]{bedi-phase}
+A.~Bedi.
+\newblock Phase-Localized Curation Does Not Help: A Negative Result on
+Per-Phase Metric Selection for Demonstration Filtering. arXiv:2606.15064,
+2026.
+
+\bibitem[Sojib and Begum(2026)]{psd}
+N.~Sojib, M.~Begum.
+\newblock An Efficient Metric for Data Quality Measurement in Imitation
+Learning. arXiv:2605.01544, 2026.
+
+\bibitem[Mandlekar et al.(2021)]{robomimic}
+A.~Mandlekar, D.~Xu, J.~Wong, S.~Nasiriany, C.~Wang, R.~Kulkarni,
+L.~Fei-Fei, S.~Savarese, Y.~Zhu, R.~Mart\'in-Mart\'in.
+\newblock What Matters in Learning from Offline Human Demonstrations for
+Robot Manipulation. CoRL, 2021.
+
+\bibitem[Kress-Gazit et al.(2024)]{empirical-science}
+H.~Kress-Gazit, K.~Hashimoto, N.~Kuppuswamy, P.~Shah, P.~Horgan, G.~Richardson,
+S.~Feng, B.~Burchfiel.
+\newblock Robot Learning as an Empirical Science: Best Practices for Policy
+Evaluation. arXiv:2409.09491, 2024.
+
+\bibitem[Wang et al.(2026)]{roboeval}
+Y.~R.~Wang, C.~Ung, C.~Tan, G.~Tannert, J.~Duan, J.~Li, A.~Le, R.~Oswal,
+M.~Grotz, W.~Pumacay, Y.~Deng, R.~Krishna, D.~Fox, S.~Srinivasa.
+\newblock RoboEval: Where Robotic Manipulation Meets Structured and Scalable
+Evaluation. arXiv:2507.00435, 2026.
+
+\bibitem[Jiang et al.(2026)]{benchmarking-audit}
+T.~Jiang, X.~Tan, S.~Wheeler, L.~Sun, T.~W.~Ayalew, M.~Walter.
+\newblock What Are We Actually Benchmarking in Robot Manipulation?
+arXiv:2606.04233, 2026.
+\end{thebibliography}
+}
+
+\paragraph{Use of AI assistance.} An AI assistant was used for code
+scaffolding, LaTeX drafting, and editing support. All experiments were
+designed, executed, and verified by the author(s); all reported numbers were
+produced by the released code and checked against raw outputs.
+
+\clearpage
+\appendix
+\begin{center}\Large\textbf{Supplementary Material}\end{center}
+\vspace{1em}
+
+\section{Full duration-band tables with bootstrap CIs}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+& full ($n{=}200$) & $T \in [120,220]$ ($n{=}98$) & $T \in [130,190]$ ($n{=}74$) & $T \in [140,175]$ ($n{=}40$) \\
+\midrule
+SAL       & 0.952 [.922,.975] & 0.793 [.690,.881] & 0.759 [.628,.875] & 0.628 [.378,.856] \\
+SAL$/T$   & 0.582 [.497,.662] & 0.600 [.479,.715] & 0.603 [.446,.755] & 0.658 [.342,.923] \\
+TED       & 0.558 [.480,.636] & 0.653 [.522,.776] & 0.631 [.468,.779] & 0.359 [.147,.583] \\
+jerk      & 0.584 [.505,.665] & 0.862 [.783,.928] & 0.906 [.832,.965] & 0.896 [.783,.980] \\
+path len. & 0.783 [.718,.842] & 0.590 [.449,.730] & 0.624 [.461,.781] & 0.429 [.215,.645] \\
+\midrule
+length $T$ & 0.957 [.929,.980] & 0.801 [.689,.901] & 0.753 [.594,.891] & \textbf{0.485} [.227,.740] \\
+\bottomrule
+\end{tabular}
+\caption{can/mh, better-vs-worse operator AUROC, 95\% bootstrap CIs (2000
+resamples). The tightest band retains 33 better and 7 worse
+demonstrations.}
+\end{table}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+& full ($n{=}200$) & $T \in [150,300]$ ($n{=}111$) & $T \in [180,260]$ ($n{=}55$) & $T \in [200,240]$ ($n{=}30$) \\
+\midrule
+SAL       & 0.898 [.852,.936] & 0.759 [.658,.849] & 0.529 [.344,.702] & 0.480 [.250,.701] \\
+SAL$/T$   & 0.458 [.376,.536] & 0.485 [.372,.602] & 0.468 [.300,.653] & 0.520 [.280,.738] \\
+TED       & 0.663 [.584,.736] & 0.685 [.577,.788] & 0.599 [.427,.758] & 0.557 [.335,.785] \\
+jerk      & 0.431 [.349,.509] & 0.570 [.455,.687] & 0.782 [.618,.923] & 0.896 [.724,1.000] \\
+path len. & 0.931 [.893,.963] & 0.817 [.726,.895] & 0.796 [.654,.913] & 0.887 [.742,.991] \\
+\midrule
+length $T$ & 0.936 [.902,.964] & 0.824 [.738,.898] & 0.613 [.456,.766] & \textbf{0.407} [.197,.629] \\
+\bottomrule
+\end{tabular}
+\caption{square/mh, same format. The tightest band retains 17 better and 13
+worse demonstrations. Note that only the rightmost column has a length
+AUROC near chance; the two intermediate bands are partial controls and are
+reported to make the trend visible, not as controls in themselves.}
+\end{table}
+
+Per-timestep normalizations of TED and path length are omitted from these
+tables. Unlike SAL, whose raw value grows with the number of spectral bins,
+these quantities do not scale linearly with $T$; dividing by $T$ converts
+them into inverse-speed proxies that \emph{rise} with skill, which is a
+different quantity rather than a duration-free measure of smoothness.
+
+\section{Full downstream training grid}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lccc}
+\toprule
+condition & pool size & best success rate (mean $\pm$ std) & 95\% CI \\
+\midrule
+oracle (successes only) & 716 & 0.892 $\pm$ 0.048 & [0.866, 0.922] \\
+\midrule
+no curation             & 1950 & 0.380 $\pm$ 0.063 & [0.344, 0.420] \\
+random 50\%             & 1950 & 0.360 $\pm$ 0.061 & [0.326, 0.398] \\
+\midrule
+SAL                     & 1950 & 0.332 $\pm$ 0.061 & [0.298, 0.370] \\
+jerk                    & 1950 & 0.332 $\pm$ 0.041 & [0.306, 0.354] \\
+path length             & 1950 & 0.310 $\pm$ 0.030 & [0.292, 0.328] \\
+TED                     & 1950 & 0.240 $\pm$ 0.045 & [0.212, 0.266] \\
+\bottomrule
+\end{tabular}
+\caption{Downstream GMM-BC policy success on can/mg, 10 seeds per
+condition. Architecture: MLP $1024{\times}1024$, 5 GMM modes, batch 100, 600
+epochs of 500 gradient steps, learning rate $10^{-4}$; 50 rollouts
+(horizon 400) every 150 epochs, best checkpoint per seed.}
+\end{table}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+& \multicolumn{2}{c}{vs.\ random 50\%} & \multicolumn{2}{c}{vs.\ no curation} \\
+\cmidrule(lr){2-3}\cmidrule(l){4-5}
+metric & $\Delta$ [95\% CI] & $p$ & $\Delta$ [95\% CI] & $p$ \\
+\midrule
+TED         & $-0.120$ [$-0.166$, $-0.076$] & $\mathbf{0.0001}$ & $-0.140$ [$-0.186$, $-0.096$] & $\mathbf{<0.0001}$ \\
+path length & $-0.050$ [$-0.090$, $-0.012$] & 0.037 & $-0.070$ [$-0.112$, $-0.030$] & 0.0071 \\
+jerk        & $-0.028$ [$-0.072$, $+0.014$] & 0.25 & $-0.048$ [$-0.092$, $-0.006$] & 0.060 \\
+SAL         & $-0.028$ [$-0.080$, $+0.024$] & 0.32 & $-0.048$ [$-0.098$, $+0.002$] & 0.098 \\
+\bottomrule
+\end{tabular}
+\caption{Difference in mean best success rate against each baseline, with
+95\% bootstrap CIs on the difference (20{,}000 resamples) and Welch
+two-sample $p$-values. Bold marks comparisons surviving Bonferroni
+correction across all eight tests ($\alpha = 0.05/8 = 0.006$); only TED
+clears it. Random vs.\ no curation: $\Delta = -0.020$, CI
+$[-0.072, +0.032]$.}
+\end{table}
+
+At 10 seeds, differences below roughly 0.05 in mean success rate are not
+resolvable on this grid. A prior 5-seed version of this analysis reported
+all four metrics as underperforming both baselines; that pattern held only
+for TED and path length once seeds were doubled, and we report the corrected
+result.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+condition & GMM-BC (10 seeds) & diffusion (5 seeds) \\
+\midrule
+oracle      & 0.892 $\pm$ 0.048 & 0.544 $\pm$ 0.030 \\
+no curation & 0.380 $\pm$ 0.063 & 0.120 $\pm$ 0.014 \\
+random 50\% & 0.360 $\pm$ 0.061 & 0.116 $\pm$ 0.017 \\
+jerk        & 0.332 $\pm$ 0.041 & 0.212 $\pm$ 0.030 \\
+TED         & 0.240 $\pm$ 0.045 & 0.092 $\pm$ 0.030 \\
+\bottomrule
+\end{tabular}
+\caption{Mean best success rate for the five conditions run under both
+policy classes.}
+\label{tab:crossarch}
+\end{table}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+& \multicolumn{2}{c}{vs.\ random 50\%} & \multicolumn{2}{c}{vs.\ no curation} \\
+\cmidrule(lr){2-3}\cmidrule(l){4-5}
+metric & $\Delta$ [95\% CI] & $p$ & $\Delta$ [95\% CI] & $p$ \\
+\midrule
+jerk & $+0.096$ [$+0.068$, $+0.124$] & $\mathbf{0.0007}$ & $+0.092$ [$+0.064$, $+0.116$] & $\mathbf{0.0011}$ \\
+TED  & $-0.024$ [$-0.048$, $+0.004$] & 0.17 & $-0.028$ [$-0.052$, $+0.000$] & 0.11 \\
+\bottomrule
+\end{tabular}
+\caption{Diffusion-policy grid (Table~\ref{tab:crossarch}), same procedure
+as the BC tests above: 95\% bootstrap CIs on the difference (20{,}000
+resamples), Welch two-sample $p$-values, Bonferroni across the four tests
+reported for this architecture ($\alpha = 0.05/4 = 0.0125$). Random and no
+curation are indistinguishable ($\Delta = -0.004$, CI $[-0.020, +0.012]$).
+Policy: conditional U-Net ($[256,512,1024]$ down-dims, kernel 5, 8 groups),
+EMA power 0.75, observation/action/prediction horizons 2/8/16, DDIM with 10
+inference steps, batch 256, 600 epochs of 500 gradient steps, lr $10^{-4}$,
+50 rollouts (horizon 400) every 150 epochs. At five seeds this grid resolves
+differences of roughly 0.054.}
+\end{table}
+
+\paragraph{Training curves and the choice of estimator.} The diffusion runs
+show no measurable improvement over the second half of training. Averaged
+across all 25 runs, mean success in the last four of the eight evaluations
+exceeds the first four by $+0.017$, against a binomial noise floor of
+$0.044$ for 50-rollout evaluations, and only 3 of 25 runs improve by more
+than one noise standard deviation; per-run variation across the eight
+evaluations has a standard deviation $1.01\times$ the noise floor. The same
+measurement on the BC grid gives $+0.092$, with 56 of 70 runs improving and
+a ratio of $1.46\times$. The flatness is therefore a property of the
+diffusion runs rather than of the evaluation protocol, and it rules out
+under-training as the explanation for the absolute gap. Separately, we
+report the best checkpoint per seed, a maximum over eight evaluations and so
+biased upward; the bias is symmetric, since both grids are evaluated eight
+times. Recomputing with the mean over the eight evaluations leaves all
+conclusions intact except one worth recording: TED versus no curation under
+diffusion reaches $p = 0.0110$ and would survive that architecture's
+threshold ($\alpha = 0.0125$), where the reported best-of-eight version does
+not ($p = 0.11$); TED versus random stays non-significant under both. We
+report the conservative version. Corrections are applied within each
+architecture; pooling all twelve tests ($\alpha = 0.00417$) changes no
+conclusion.
+
+\section{Secondary setting: can/paired}
+
+On robomimic's matched-pair split every metric is inverted against success
+(TED 0.331, SAL 0.398, jerk 0.368, path length 0.029), but the setting
+carries an opposing length confound: successful demonstrations are
+systematically longer (length-alone AUROC 0.194) and path length correlates
+$+0.86$ with duration. Its matched-pair construction also concentrates the
+discriminating signal into a handful of terminal timesteps, since each pair
+shares a near-identical prefix and diverges only at the final placement.
+Neither property is representative of the mixed-quality pools curation
+metrics are deployed on, so we report it for completeness and treat can/mg
+as the primary success-label evidence.
+
+\section{Qualitative mechanism}
+
+Contrasting a successful and a failed can/mg demonstration: both contain one
+high-deviation segment under TED's contact partition, but they differ in
+placement and extent. In the success the high-residual segment spans
+timesteps 12--96 (84 of 150 steps, mean envelope residual 0.259) and
+coincides with the descend-and-grasp. In the failure the only comparable
+deviation is the initial free-space approach (0--24, residual 0.213); the
+remaining 126 steps are a flat tail in which the end effector holds height
+while the gripper cycles without completing a placement, every segment
+scoring below 0.014. Because TED averages deviation over the DTW alignment
+path, a committed motion spanning half the episode raises the score while a
+short approach transient is diluted. TED rates the failure as the cleaner
+trajectory (0.042 vs. 0.144). Per-demonstration TED scores inspected:
+successes 0.144 and 0.079; failures 0.042, 0.042, 0.017.
+
+\section{Reproducibility}
+
+All data is public robomimic. Metric implementations, scoring scripts, band
+analysis, training configurations, and scored CSVs will be released on
+publication. TED is reimplemented from the published appendix
+($w_{\mathrm{ori}} = 0.25$, contact partition at gripper open/close
+transitions, greedy B\'ezier envelope per segment, length-normalized DTW
+distance); SAL follows its published formula. Control rate 20\,Hz,
+$\Delta t = 0.05$\,s.
+
+\end{document}
