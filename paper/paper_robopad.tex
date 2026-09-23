@@ -40,7 +40,7 @@ vs.\ 0.360, $p{=}0.0001$, surviving Bonferroni correction); path length is
 directionally harmful with weaker support, while SAL and jerk are not
 statistically distinguishable from not curating at all. Replicating the grid
 under a diffusion policy, TED remains the worst condition, but the two
-architectures do not agree on the rest: jerk, inert under behavior cloning,
+policy configurations we tested do not agree on the rest: jerk, inert under behavior cloning,
 becomes significantly \emph{better} than both baselines under diffusion,
 so which metric a pipeline should trust is not a property of the metric
 alone.
@@ -72,8 +72,8 @@ to perform it are typically validated once, on clean data, and then reused
 across deployments without re-checking whether they still measure what they
 claim to measure. This paper is a case study in what goes wrong when that
 assumption fails: a published, named curation metric that looks reliable on
-successful demonstrations, and is actively harmful once the pool it filters
-contains the failures and near-misses that post-training adaptation
+successful demonstrations, and is actively harmful under behavior cloning
+once the pool it filters contains the failures and near-misses that post-training adaptation
 pipelines actually have to work with.
 
 Behavior cloning inherits the quality of its demonstrations, and a growing
@@ -127,8 +127,8 @@ duration-matched subsets, SAL's advantage collapses and raw mean jerk, the
 crude baseline the smoothness literature positions itself against, becomes
 the strongest detector. Against \emph{task success}, on fixed-length data,
 both of \rinse{}'s metrics are at or below chance, with TED inverted, while
-jerk retains signal. Curating by TED produces a policy substantially worse
-than random subsampling of the same size, a result that survives correction
+jerk retains signal. Curating by TED produces a behavior-cloning policy
+substantially worse than random subsampling of the same size, a result that survives correction
 for multiple comparisons; the weaker metrics are not distinguishable from
 doing nothing. Skill and success are
 different targets, and the curation literature validates on one while
@@ -483,7 +483,7 @@ downstream, whose detection AUROC is near chance (0.454). Detection accuracy
 is at best a coarse predictor of curation value, consistent with the
 decoupling reported by~\citep{bedi-policy} on a different testbed.
 
-\subsection{Does the curation decision transfer across policy classes?}
+\subsection{Does the curation decision transfer across policy configurations?}
 \label{sec:crossarch}
 
 The grid above uses one policy class, so it cannot separate a property of
@@ -584,12 +584,10 @@ baselines ($p \geq 0.06$); under diffusion it is better than both by $+0.096$
 and $+0.092$, and both comparisons survive correction. This is the largest
 effect in the diffusion grid and it points the opposite way from this
 paper's headline: at least one crude trajectory statistic, never proposed as
-a curation metric, has genuine curation value under the right policy
-class. It is
-also the second time in this paper that jerk outperforms the metrics
-motivated against it, the first being detection inside a duration-matched
-band. We do not have an account of why the architectures differ here, and we
-report it as an open result rather than a mechanism.
+a curation metric, has genuine curation value in the configuration we
+tested. It is also the second time in this paper that jerk outperforms the
+metrics motivated against it, the first being detection inside a
+duration-matched band. What may drive the reversal is taken up below.
 
 Third, absolute success rates are lower under diffusion in every condition,
 by factors ranging from $1.6\times$ on the oracle (0.544 vs.\ 0.892) to
@@ -610,7 +608,11 @@ noise alone. The identical measurement on the BC grid gives $+0.092$, with
 property of the diffusion runs and not of our evaluation protocol. Whatever
 limits these policies is not training duration; they converge early and
 stop. We record this because under-training is the most natural explanation
-for the gap and it does not survive contact with the training curves. The
+for the gap and it does not survive contact with the training curves. One
+candidate remains: our runs used robomimic's default delta actions, which
+Chi et al.~\citep{chi-dp} report handicap diffusion policy while helping BC,
+so the gap and the jerk reversal may partly reflect action parameterization,
+and the policy-class reading of both is provisional. The
 consequence for reading
 Table~\ref{tab:crossarch} is concrete: the two columns are not operating at
 comparable points on the success scale, so cross-architecture comparisons of
@@ -624,11 +626,12 @@ comparisons still survive, and path length's $p = 0.0071$ still does not.
 
 For a post-training pipeline the practical reading is that a curation metric
 cannot be selected once and reused across adaptation setups. The same filter
-that is merely inert under one policy class is the best-performing choice
-under another, and the metric that is most harmful under one is not
-measurably harmful under the other. Curation and policy class are a joint
-choice, and reporting a curation result without naming the architecture it
-was measured on leaves out something that changes the answer.
+that is merely inert under one policy configuration is the best-performing
+choice under another, and the metric that is most harmful under one is not
+measurably harmful under the other. Curation and the policy configuration,
+architecture and action parameterization included, are a joint choice, and
+reporting a curation result without naming that configuration leaves out
+something that changes the answer.
 
 \section{Discussion}
 
@@ -707,8 +710,9 @@ consistent with but not evidence for that number.
 Our detection results cover two robomimic tasks (Can and Square) but our
 success-label and downstream-training results cover only Can, because Can is
 the only robomimic task shipping failure-containing splits; extending the
-success-label analysis requires moving to a different benchmark such as
-LIBERO. Our downstream results cover two policy classes (GMM behavior
+success-label analysis requires datasets with real, labeled teleoperation
+failures, such as \mbox{REASSEMBLE}~\citep{reassemble} or
+DROID~\citep{droid}. Our downstream results cover two policy classes (GMM behavior
 cloning and a diffusion policy); the detection results are policy-free.
 The cross-architecture grid of Section~\ref{sec:crossarch} carries three
 limitations of its own. It covers two of the four metrics, since SAL and
@@ -726,8 +730,9 @@ under-convergence; restoring the full epoch and rollout budget did not close
 it, and the training curves rule that explanation out directly, since the
 diffusion runs improve by only $+0.017$ between the first and second halves
 of training against a $0.044$ noise floor while the BC runs improve by
-$+0.092$. The gap is not a matter of training duration, and we have no
-replacement explanation for it. Because the two grids sit at different points on
+$+0.092$. The gap is not a matter of training duration; action
+parameterization (Section~\ref{sec:crossarch}) is a candidate we have not
+yet tested. Because the two grids sit at different points on
 the success scale, we restrict cross-architecture claims to ordering and
 sign rather than magnitude. Multiple-comparison correction is applied within
 each architecture, as each grid is a separate family; pooling all twelve
@@ -745,8 +750,7 @@ that architecture. The oracle training
 condition has a smaller pool (716 vs.\ 1950) and is reported as a ceiling,
 not a matched comparison. Finally, our success-label experiments use
 machine-generated failures (can/mg); failure modes of human teleoperators
-may present differently, and extending the audit to human-failure pools is
-the clearest next step. We report can/paired only as a secondary setting
+may present differently. We report can/paired only as a secondary setting
 because its matched-pair construction, in which each success/failure pair
 shares a near-identical trajectory prefix and diverges only in the final
 placement, concentrates the discriminating signal into a handful of
@@ -770,12 +774,12 @@ the same size, a result robust to correction for multiple comparisons, while
 the other metrics are directionally below the baselines without being
 distinguishable from them. An oracle reaches 0.892 on the same pool, so the
 signal these metrics fail to find is unambiguously present in the data.
-Replicating the grid under a diffusion policy leaves TED ranked worst under
-both architectures, though at five seeds its deficit there is not resolvable,
+In the diffusion configuration we tested, TED still ranks worst under both
+architectures, though at five seeds its deficit there is not resolvable,
 and reverses jerk from inert to better than both baselines. For a
 post-training pipeline this is the operative point: which demonstrations are
 worth keeping is not a property of the demonstrations alone, and a curation
-metric carried unchanged across policy classes can change sign.
+metric carried unchanged across policy configurations can change sign.
 
 \paragraph{Reproducibility.} All datasets are the public robomimic
 release~\citep{robomimic}; SAL follows its published formula and TED is
@@ -844,6 +848,23 @@ Evaluation.
 T.~Jiang, X.~Tan, S.~Wheeler, L.~Sun, T.~W.~Ayalew, M.~Walter.
 \newblock What Are We Actually Benchmarking in Robot Manipulation?
 \newblock arXiv:2606.04233, 2026.
+
+\bibitem[Chi et al.(2023)]{chi-dp}
+C.~Chi, Z.~Xu, S.~Feng, E.~Cousineau, Y.~Du, B.~Burchfiel, R.~Tedrake,
+S.~Song.
+\newblock Diffusion Policy: Visuomotor Policy Learning via Action Diffusion.
+\newblock arXiv:2303.04137, 2023.
+
+\bibitem[Khazatsky et al.(2024)]{droid}
+A.~Khazatsky, K.~Pertsch, S.~Nair, et al.
+\newblock DROID: A Large-Scale In-The-Wild Robot Manipulation Dataset.
+\newblock arXiv:2403.12945, 2024.
+
+\bibitem[Sliwowski et al.(2025)]{reassemble}
+D.~Sliwowski, S.~Jadav, S.~Stanovcic, J.~Orbik, J.~Heidersberger, D.~Lee.
+\newblock REASSEMBLE: A Multimodal Dataset for Contact-rich Robotic Assembly
+and Disassembly.
+\newblock arXiv:2502.05086, 2025.
 \end{thebibliography}
 
 \end{document}
