@@ -77,8 +77,9 @@ a scoring metric that is built and validated on clean, successful data
 actually recognize failure when a real failure is placed in front of it? We
 show, for one widely-motivated family of scores, that the answer is no, and
 that the failure to recognize failure is not a minor miscalibration but a
-sign flip large enough to make training on the curated subset worse than
-training on the uncurated pool.
+sign flip that, for the contact-aware metric under behavior cloning, is
+large enough to make training on the curated subset worse than training on
+the uncurated pool.
 
 Behavior cloning inherits the quality of its demonstrations, and a growing
 literature proposes to score and filter demonstrations automatically.
@@ -131,8 +132,8 @@ duration-matched subsets, SAL's advantage collapses and raw mean jerk, the
 crude baseline the smoothness literature positions itself against, becomes
 the strongest detector. Against \emph{task success}, on fixed-length data,
 both of \rinse{}'s metrics are at or below chance, with TED inverted, while
-jerk retains signal. Curating by TED produces a policy substantially worse
-than random subsampling of the same size, a result that survives correction
+jerk retains signal. Curating by TED produces a behavior-cloning policy
+substantially worse than random subsampling of the same size, a result that survives correction
 for multiple comparisons; the weaker metrics are not distinguishable from
 doing nothing. Skill and success are
 different targets, and the curation literature validates on one while
@@ -486,7 +487,7 @@ beats random by $+0.096$ ($p = 0.0007$) and no curation by $+0.092$
 ($p = 0.0011$), both surviving correction at $\alpha = 0.0125$. This is the largest effect in the diffusion grid, and it cuts
 against the reading our own abstract invited: at least one crude trajectory
 statistic, never proposed as a curation metric, has genuine curation value
-under the right policy class. As with the 5-to-10-seed expansion that
+in the configuration we tested. As with the 5-to-10-seed expansion that
 removed SAL and jerk from our harm claim, a settled negative result narrowed
 under more evidence; the scope of such results is easy to understate.
 
@@ -596,8 +597,7 @@ that architecture. The oracle training
 condition has a smaller pool (716 vs.\ 1950) and is reported as a ceiling,
 not a matched comparison. Finally, our success-label experiments use
 machine-generated failures (can/mg); failure modes of human teleoperators
-may present differently, and extending the audit to human-failure pools is
-the clearest next step. Why can/paired is only a secondary setting is
+may present differently. Why can/paired is only a secondary setting is
 explained in Appendix~\ref{app:paired}.
 
 \section{Conclusion}
@@ -610,8 +610,8 @@ they were designed to supersede outperforms them, and the contact-aware
 metric inverts, and the same crossover reproduces on a second task without
 retuning. Under behavior cloning, curating by TED costs roughly a third of
 downstream success against random selection of the same size, robust to
-correction, while an oracle reaches 0.892 on the same pool. Under a
-diffusion policy TED still ranks worst, though its deficit is not
+correction, while an oracle reaches 0.892 on the same pool. In the
+diffusion configuration we tested, TED still ranks worst, though its deficit is not
 resolvable at five seeds, and jerk reverses from inert to better than both
 baselines: a curation metric's failure is reported far more readily than
 the conditions under which it was measured.
