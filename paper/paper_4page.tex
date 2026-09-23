@@ -84,8 +84,8 @@ performance tracks the episode-length baseline almost exactly, and collapses
 under duration matching. (2) On a fixed-horizon split where duration is
 constant by construction, both metrics of a recent published method are at
 or below chance against task success, with the contact-aware metric
-inverted. (3) Filtering training data by these scores produces policies
-worse than no filtering at all. The substantive contribution is not that
+inverted. (3) Filtering training data by the contact-aware metric produces
+behavior-cloning policies worse than no filtering at all. The substantive contribution is not that
 these particular metrics are weak; it is that a single unreported
 preprocessing decision determines the sign of the conclusion, which makes it
 a reporting requirement rather than a robustness check.
@@ -246,8 +246,10 @@ above 0.054, and TED's deficit there ($-0.028$, CI $[-0.052, +0.000]$) falls
 below it, so the \emph{ordering} replicates while the \emph{harm} stays
 established under BC only. Jerk reverses sign, beating both baselines by
 $+0.096$ and $+0.092$ ($p = 0.0007$, $0.0011$, surviving correction) after
-being inert under BC: the crude baseline has curation value under the right
-policy class.
+being inert under BC. Our runs used robomimic's default delta actions, which
+Chi et al.~\citep{chi-dp} report handicap diffusion policy while helping BC,
+so the reversal and the absolute gap may partly reflect action
+parameterization and their policy-class reading is provisional.
 
 Qualitative inspection explains the direction (Figure~\ref{fig:qual}). On
 this task successful manipulation requires sustained high-deviation motion
@@ -299,20 +301,20 @@ remove failures from mixed pools; that gap is where the inversion lives.
 
 Detection results cover two robomimic tasks; the success-label and training
 results cover one, because Can is the only robomimic task with
-failure-containing splits, and extending them requires a different benchmark
-such as LIBERO. Two policy classes downstream (GMM behavior cloning,
+failure-containing splits, and extending them requires real, labeled
+teleoperation failures such as \mbox{REASSEMBLE}~\citep{reassemble} or
+DROID~\citep{droid}. Two policy classes downstream (GMM behavior cloning,
 diffusion); detection results are policy-free. The diffusion grid covers two
 of the four metrics at five seeds, so TED's cross-architecture claim is
 about ordering, not harm, and its absolute rates stay 1.6--3.1$\times$
-below BC for reasons we cannot yet identify; the training curves rule out
-under-training (supplementary). TED is our reimplementation from the
+below BC, possibly in part from action parameterization; the training
+curves rule out under-training (supplementary). TED is our reimplementation from the
 published
 appendix, not the authors' code; it agrees broadly with SAL's ranking on
 clean data as a sanity check, but a discrepancy cannot be excluded. The
 tightest duration bands are small ($n{=}40$, $n{=}30$), and we treat them as
 the endpoint of a trend rather than as standalone evidence. Failures in
-can/mg are machine-generated; human failure modes may differ, and a
-human-failure pool is the clearest next step.
+can/mg are machine-generated; human failure modes may differ.
 
 {\small
 \bibliographystyle{plainnat}
@@ -366,6 +368,23 @@ Evaluation. arXiv:2507.00435, 2026.
 T.~Jiang, X.~Tan, S.~Wheeler, L.~Sun, T.~W.~Ayalew, M.~Walter.
 \newblock What Are We Actually Benchmarking in Robot Manipulation?
 arXiv:2606.04233, 2026.
+
+\bibitem[Chi et al.(2023)]{chi-dp}
+C.~Chi, Z.~Xu, S.~Feng, E.~Cousineau, Y.~Du, B.~Burchfiel, R.~Tedrake,
+S.~Song.
+\newblock Diffusion Policy: Visuomotor Policy Learning via Action Diffusion.
+arXiv:2303.04137, 2023.
+
+\bibitem[Khazatsky et al.(2024)]{droid}
+A.~Khazatsky, K.~Pertsch, S.~Nair, et al.
+\newblock DROID: A Large-Scale In-The-Wild Robot Manipulation Dataset.
+arXiv:2403.12945, 2024.
+
+\bibitem[Sliwowski et al.(2025)]{reassemble}
+D.~Sliwowski, S.~Jadav, S.~Stanovcic, J.~Orbik, J.~Heidersberger, D.~Lee.
+\newblock REASSEMBLE: A Multimodal Dataset for Contact-rich Robotic Assembly
+and Disassembly.
+arXiv:2502.05086, 2025.
 \end{thebibliography}
 }
 
