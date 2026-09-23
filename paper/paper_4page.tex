@@ -136,7 +136,7 @@ supplementary material.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.92\linewidth]{fig_main.pdf}
+\includegraphics[width=0.85\linewidth]{fig_main.pdf}
 \caption{\textbf{Smoothness tracks duration, not quality.} (a) Skill AUROC
 on can/mh across tightening duration bands. SAL (red) follows the
 episode-length baseline (gray, dashed) down; jerk (blue) rises as the
@@ -257,7 +257,7 @@ rewarding smoothness is measuring commitment with the sign flipped.
 
 \begin{figure}[!ht]
 \centering
-\includegraphics[width=0.88\linewidth]{fig_qual_pair.pdf}
+\includegraphics[width=0.82\linewidth]{fig_qual_pair.pdf}
 \caption{\textbf{Failure is smooth; success is not.} A successful (left) and
 failed (right) can/mg demonstration, with TED's contact-segment boundaries
 (red), per-segment B\'ezier envelope (dashed), and envelope residual
@@ -303,26 +303,16 @@ failure-containing splits, and extending them requires a different benchmark
 such as LIBERO. Two policy classes downstream (GMM behavior cloning,
 diffusion); detection results are policy-free. The diffusion grid covers two
 of the four metrics at five seeds, so TED's cross-architecture claim is
-about ordering, not harm; its absolute rates stay below BC in every
-condition at a matched epoch and evaluation budget, from $1.6\times$ on the
-oracle to $3.1\times$ on the baselines. The training curves rule out
-under-training, the explanation we gave for the same gap in an earlier
-pilot: the diffusion runs improve by $+0.017$ between the first and second
-halves of training against a $0.044$ noise floor, where the BC runs improve
-by $+0.092$ (supplementary). The gap is unexplained. Corrections are applied within each architecture; pooling all
-twelve tests ($\alpha = 0.00417$) changes no conclusion. TED is our
-reimplementation from the published
+about ordering, not harm, and its absolute rates stay 1.6--3.1$\times$
+below BC for reasons we cannot yet identify; the training curves rule out
+under-training (supplementary). TED is our reimplementation from the
+published
 appendix, not the authors' code; it agrees broadly with SAL's ranking on
 clean data as a sanity check, but a discrepancy cannot be excluded. The
 tightest duration bands are small ($n{=}40$, $n{=}30$), and we treat them as
 the endpoint of a trend rather than as standalone evidence. Failures in
 can/mg are machine-generated; human failure modes may differ, and a
 human-failure pool is the clearest next step.
-
-\paragraph{Use of AI assistance.} An AI assistant was used for code
-scaffolding, LaTeX drafting, and editing support. All experiments were
-designed, executed, and verified by the author(s); all reported numbers were
-produced by the released code and checked against raw outputs.
 
 {\small
 \bibliographystyle{plainnat}
@@ -378,6 +368,11 @@ T.~Jiang, X.~Tan, S.~Wheeler, L.~Sun, T.~W.~Ayalew, M.~Walter.
 arXiv:2606.04233, 2026.
 \end{thebibliography}
 }
+
+\paragraph{Use of AI assistance.} An AI assistant was used for code
+scaffolding, LaTeX drafting, and editing support. All experiments were
+designed, executed, and verified by the author(s); all reported numbers were
+produced by the released code and checked against raw outputs.
 
 \clearpage
 \appendix
@@ -552,7 +547,9 @@ conclusions intact except one worth recording: TED versus no curation under
 diffusion reaches $p = 0.0110$ and would survive that architecture's
 threshold ($\alpha = 0.0125$), where the reported best-of-eight version does
 not ($p = 0.11$); TED versus random stays non-significant under both. We
-report the conservative version.
+report the conservative version. Corrections are applied within each
+architecture; pooling all twelve tests ($\alpha = 0.00417$) changes no
+conclusion.
 
 \section{Secondary setting: can/paired}
 
