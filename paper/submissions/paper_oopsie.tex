@@ -50,7 +50,7 @@ under a diffusion policy qualifies that headline in both directions: TED is
 still the worst condition, but at five seeds its deficit is no longer
 resolvable, and jerk moves from inert to significantly better than both
 baselines, so a smoothness-adjacent statistic we had written off does have
-curation value under a policy class we had not tested.
+curation value in a diffusion-policy configuration we had not tested.
 Inspecting individual trajectories shows why: on this task successful
 manipulation requires sustained high-deviation motion through the contact
 phase, while failure manifests as smooth low-amplitude hovering, so a
@@ -486,13 +486,9 @@ beats random by $+0.096$ ($p = 0.0007$) and no curation by $+0.092$
 ($p = 0.0011$), both surviving correction at $\alpha = 0.0125$. This is the largest effect in the diffusion grid, and it cuts
 against the reading our own abstract invited: at least one crude trajectory
 statistic, never proposed as a curation metric, has genuine curation value
-under the right policy class. It is the second time in this paper that an
-apparently settled negative result narrowed under more evidence, the first
-being the 5-to-10-seed expansion that removed SAL and jerk from our harm
-claim. We take the recurrence seriously rather than as coincidence: the
-scope conditions on a negative curation result appear to be easy to
-understate. We do not have an account of why the architectures differ, and
-report it as an open result rather than a mechanism.
+under the right policy class. As with the 5-to-10-seed expansion that
+removed SAL and jerk from our harm claim, a settled negative result narrowed
+under more evidence; the scope of such results is easy to understate.
 
 \paragraph{What we cannot explain.} Absolute success rates are lower under
 diffusion in every condition, from $1.6\times$ on the oracle (0.544 vs.\
@@ -502,9 +498,12 @@ under-training, and the training curves rule that out: the diffusion runs
 improve by only $+0.017$ between the first and second halves of training,
 inside a $0.044$ binomial noise floor, where the BC runs improve by $+0.092$
 (Appendix~\ref{app:dpdetail}). These policies converge early and stop. That
-explanation was ours, it was wrong, and we have none to replace it, so we
-restrict cross-architecture claims to ordering and sign rather than
-magnitude.
+explanation was ours, it was wrong, and we have no confirmed replacement.
+Our runs used robomimic's default delta actions, which Chi et
+al.~\citep{chi-dp} report handicap diffusion policy while helping BC, so the
+gap and the jerk reversal may partly reflect action parameterization and the
+policy-class reading of both is provisional. We therefore restrict
+cross-architecture claims to ordering and sign rather than magnitude.
 
 \section{Discussion}
 
@@ -574,16 +573,16 @@ for, the AUROC of 0.376 in Figure~\ref{fig:main}b.
 Our detection results cover two robomimic tasks (Can and Square) but our
 success-label and downstream-training results cover only Can, because Can is
 the only robomimic task shipping failure-containing splits; extending the
-success-label analysis requires moving to a different benchmark such as
-LIBERO. Our downstream results now cover two policy classes (GMM behavior
+success-label analysis requires datasets with real, labeled teleoperation
+failures, such as \mbox{REASSEMBLE}~\citep{reassemble} or DROID~\citep{droid}.
+Our downstream results now cover two policy classes (GMM behavior
 cloning and a diffusion policy); the detection results are policy-free. The
 diffusion grid (Section~\ref{sec:crossarch}) covers two of the four metrics,
 so TED ranks worst over five conditions there against seven under BC; it
 uses five seeds, too few to resolve TED's diffusion deficit, so we claim
 TED's ordering across architectures but its harm under BC only; and its
-absolute success rates sit 1.6--3.1$\times$ below BC for reasons we cannot
-yet identify, which is why cross-architecture claims are limited to
-ordering and sign.
+absolute success rates sit 1.6--3.1$\times$ below BC, possibly in part from
+action parameterization (Section~\ref{sec:crossarch}).
 Our TED is a reimplementation from the \rinse{} appendix, not the authors'
 released code; as a sanity check it broadly agrees with SAL's ranking on the
 clean proficient-human data, but a discrepancy with the reference
@@ -671,6 +670,23 @@ Evaluation.
 T.~Jiang, X.~Tan, S.~Wheeler, L.~Sun, T.~W.~Ayalew, M.~Walter.
 \newblock What Are We Actually Benchmarking in Robot Manipulation?
 \newblock arXiv:2606.04233, 2026.
+
+\bibitem[Chi et al.(2023)]{chi-dp}
+C.~Chi, Z.~Xu, S.~Feng, E.~Cousineau, Y.~Du, B.~Burchfiel, R.~Tedrake,
+S.~Song.
+\newblock Diffusion Policy: Visuomotor Policy Learning via Action Diffusion.
+\newblock arXiv:2303.04137, 2023.
+
+\bibitem[Khazatsky et al.(2024)]{droid}
+A.~Khazatsky, K.~Pertsch, S.~Nair, et al.
+\newblock DROID: A Large-Scale In-The-Wild Robot Manipulation Dataset.
+\newblock arXiv:2403.12945, 2024.
+
+\bibitem[Sliwowski et al.(2025)]{reassemble}
+D.~Sliwowski, S.~Jadav, S.~Stanovcic, J.~Orbik, J.~Heidersberger, D.~Lee.
+\newblock REASSEMBLE: A Multimodal Dataset for Contact-rich Robotic Assembly
+and Disassembly.
+\newblock arXiv:2502.05086, 2025.
 \end{thebibliography}
 
 \clearpage
