@@ -47,7 +47,7 @@ It claims that filtering demonstrations by these metrics improves downstream pol
 | File | Venue | Limit | Status |
 |---|---|---|---|
 | paper_oopsie.tex | CoRL 2026 "Oops, I Erred" workshop | 8 pp, excl. refs and appendix | **Live and final.** OpenReview 7C6WROjCKQ; PDF sha1 ab2a0e17, verified by download. Zero spare lines |
-| paper_4page.tex | CoRL 2026 WEBP ("Everything Beneath the Policy") | 4 pp, excl. refs | **Live and final.** 8HHUxS9GcK; sha1 9ca67e37, verified. Zero spare lines. Notification Oct 26 |
+| paper_4page.tex | CoRL 2026 WEBP ("Everything Beneath the Policy") | 4 pp, excl. refs | **Live and final.** 8HHUxS9GcK; sha1 b0fe4e6b, verified. Zero spare lines. Notification Oct 26 |
 | paper_robopad.tex | NeurIPS 2026 RoboPAD workshop | 9 pp main content | Window closed Sep 13; live = Sep 8 original (BC only). Working copy updated but about a page over, for any camera-ready |
 | paper.tex | arXiv / ResearchGate, not anonymized | none | Updated, not yet posted |
 
