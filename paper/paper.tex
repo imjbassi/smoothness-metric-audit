@@ -52,8 +52,9 @@ decision does not transfer unchanged across the two policy configurations
 we tested.
 Inspecting individual trajectories shows why: on this task successful
 manipulation requires sustained high-deviation motion through the contact
-phase, while failure manifests as smooth low-amplitude hovering, so a
-smoothness metric measures commitment with the sign flipped. The length
+phase, while failure manifests as low-amplitude hovering that a smoothed
+envelope follows closely, so an envelope-based smoothness metric measures
+commitment with the sign flipped. The length
 confound replicates on a second task: on square/mh, SAL correlates $+0.96$
 with episode duration and its skill AUROC falls from 0.898 to 0.480 inside a
 duration-matched band, while jerk rises from 0.431 to 0.896. Our results
@@ -108,6 +109,21 @@ required. Truncation removes the confound by discarding signal; a
 fixed-horizon dataset removes it without touching the trajectories.
 \end{enumerate}
 
+The scope of the evidence is worth stating before the results rather than
+after them. The detection results, which involve no training, cover two
+robomimic tasks, Can and Square, and use real operator skill tiers as
+labels. The success-label results cover one task, Can, because it is the
+only robomimic task that ships splits containing failures. The
+downstream-training results also cover Can only, under two policy
+configurations: a GMM behavior-cloning policy, run for all four metrics at
+ten seeds, and a diffusion policy, run for two of the four metrics at five
+seeds. The downstream claims we make about TED are therefore established
+under behavior cloning only, and the claim we make about jerk under the
+diffusion policy holds in the configuration we tested. We make no claim
+about other tasks, about human teleoperation failures, or about other
+policy configurations, and Section~\ref{sec:limitations} states what each
+extension would require.
+
 Our findings are easy to state. Smoothness metrics rank \emph{operator
 skill} largely to the extent that skill is confounded with how long the
 episode took. Once duration is controlled, by normalization or by
@@ -149,6 +165,112 @@ be shortcut-driven, with episode duration as the shortcut.
 
 \section{Metrics and Datasets}
 \label{sec:setup}
+
+\subsection{What each metric measures}
+\label{sec:primer}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig_metric_primer.pdf}
+\caption{\textbf{What the four metrics reward, on illustrative synthetic
+data.} Left: end-effector speed profiles of three synthetic pick-and-place
+demonstrations built from minimum-jerk segments between identical
+waypoints, with the same small band-limited jitter added to each (shaded:
+gripper closed). (a) is short and smooth. (b) is the same motion executed
+twice as slowly, so the episode is twice as long and every segment is just
+as smooth. (c) is (a) with a committed correction inserted before the
+grasp: lift, shift sideways, descend again. Right: how each metric ranks
+the three, computed with the implementations used throughout the paper,
+with every score given relative to the best of the three under that
+metric. SAL rates the slow copy (b) worst, by a wider margin than it charges
+the correction in (c). TED rates the correction (c) worst and the slow copy
+(b) best. Jerk also rates (c) worst and barely separates (a) from (b). Path
+length cannot separate (a) from (b), which travel the same route. Every
+ordering shown is stable across 30 noise seeds except the (a)/(b) near-tie
+under jerk, which swaps in about a third of them, and the (a)/(c) order
+under SAL, which swapped once (\texttt{scripts/fig\_metric\_primer.py}).
+Synthetic and illustrative only: no number in this figure is measured on
+robomimic.}
+\label{fig:primer}
+\end{figure}
+
+Readers who already know these metrics can skip to
+Section~\ref{sec:formal}. All four return a badness score, higher is worse,
+and curating by a metric means keeping the demonstrations with the lowest
+scores. The intuition behind each metric comes first here, and the formal
+definitions follow in Section~\ref{sec:formal}.
+
+\textbf{SAL (Spectral Arc Length).} SAL looks only at how fast the end
+effector is moving over time, ignoring where it goes. It takes that speed
+trace, breaks it into its frequency content, and measures how long and
+jagged the resulting spectrum is. A speed trace made of a few clean rises
+and falls, as in a single deliberate reach, has a spectrum that decays
+quickly and smoothly, which gives a short arc and a good score. A trace full
+of small accelerations and hesitations has content at many frequencies and
+a longer arc. The metric was developed in rehabilitation science to score
+the reaching movements of patients against those of healthy subjects, and
+the argument for applying it to demonstrations is that a skilled operator
+moves in a few committed strokes while an unskilled one makes many small
+adjustments.
+
+\textbf{TED (Trajectory-Envelope Distance).} TED asks how far the recorded
+motion strays from a smoothed copy of itself. It cuts the episode into
+pieces at every moment the gripper opens or closes, fits each piece with a
+smooth curve (the envelope), and reports the average gap between the
+recorded pose and that curve along the best time alignment of the two.
+Motion that a smooth curve can follow closely scores well. Motion with
+excursions the curve cannot follow scores badly. The cuts at gripper events
+are what make TED contact-aware: the abrupt change of motion that
+necessarily accompanies a grasp or a release falls on a segment boundary
+instead of being counted as a deviation, so what remains is meant to be
+the operator's wobble within each phase of the task.
+
+\textbf{Jerk.} Jerk is the rate at which acceleration changes. Mean jerk
+takes the third difference of the end-effector position at every timestep
+and averages its magnitude over the episode. Motion that speeds up and
+slows down gradually scores well. Abrupt starts, stops, and changes of
+direction score badly. It is the classical smoothness measure in the
+motor-control literature and the crude baseline that SAL and TED were
+proposed to improve on. The usual criticisms are that it amplifies sensor
+noise and that it does not distinguish a deliberate fast motion from a
+shaky one.
+
+\textbf{Path length.} Path length is the total distance the end effector
+travels. A demonstration that goes more or less directly from start to goal
+scores well. One that wanders, backtracks, or makes repeated attempts
+scores badly. The intuition is that a skilled operator takes the direct
+route.
+
+\textbf{Which of these grow with episode length.} Two of the four are tied
+to duration and two are not. SAL's arc is a sum over the $T/2$ frequency
+bins of the spectrum, and on real data every bin carries some noise and
+adds to the sum, so recording the same motion for twice as long raises SAL
+even when nothing about the execution has changed. On can/mh and square/mh,
+SAL's correlation with $T$ is above $+0.95$ (Section~\ref{sec:detection}).
+Path length grows with distance rather than time, so a slow retrace of the
+same route scores the same as a fast one, but an operator who takes longer
+usually also travels further, and its correlation with $T$ is $+0.86$ on
+can/paired and $+0.90$ on square/mh. Jerk and TED are averages per
+timestep (TED per step of the time alignment) and do not accumulate with
+$T$. TED's correlation with $T$ on can/mh is $+0.14$. Slowing the same
+motion down lowers every acceleration along it, so jerk, if anything,
+favors slower execution of the same path.
+
+Figure~\ref{fig:primer} shows the two behaviors that the rest of the paper
+turns on, using three synthetic speed profiles scored with our own
+implementations. Demonstration (b) is demonstration (a) executed twice as
+slowly, with every segment exactly as smooth, and SAL rates it the worst of
+the three, by a wider margin than it charges the committed correction in
+(c). SAL rewards shortness. TED rates the correction in (c) as the worst of
+the three and the slow copy in (b) as the best. TED penalizes committed
+motion. On real data, the first behavior appears as SAL tracking episode
+length almost exactly (Section~\ref{sec:detection}), and the second as TED
+rating the low-deviation hovering of failed can/mg demonstrations as
+cleaner than the committed contact-phase motion of successful ones
+(Section~\ref{sec:discussion}).
+
+\subsection{Formal definitions, datasets, and statistics}
+\label{sec:formal}
 
 \textbf{Metrics.} All metrics are computed from proprioceptive signals at the
 robomimic control rate of 20\,Hz ($\Delta t = 0.05$\,s) and return a badness
@@ -452,7 +574,7 @@ we apply the same standard to our own results: the defensible claim is about
 TED, not about smoothness metrics as a class.
 
 What the grid does establish irrespective of any single comparison is that
-under this policy class none of these metrics recovers usable signal that is
+under this policy configuration none of these metrics recovers usable signal that is
 demonstrably present.
 An oracle keeping only true successes reaches 0.892 [0.866, 0.922], roughly
 2.5$\times$ the best metric-curated condition, so the pool contains ample
@@ -474,7 +596,7 @@ decoupling reported by~\citep{bedi-policy} on a different testbed.
 \subsection{Cross-architecture replication under a diffusion policy}
 \label{sec:crossarch}
 
-The grid above uses a single policy class, so on its own it cannot
+The grid above uses a single policy configuration, so on its own it cannot
 distinguish a property of the metric from a property of behavior cloning. We
 therefore replicated it under a diffusion policy on the same curated
 subsets: same keep fraction, same 1950-demonstration pools, same 600 epochs
@@ -497,7 +619,7 @@ with EMA (power 0.75), an observation horizon of 2, action horizon of 8, and
 prediction horizon of 16, using a DDIM noise scheduler with 10 inference
 steps. Batch size (256 vs.\ 100) and the sequence modeling are inherent to
 the architecture and are the only respects in which the two grids differ by
-more than the policy class. We ran five conditions (TED, jerk, and the three
+more than the policy configuration. We ran five conditions (TED, jerk, and the three
 references) with five seeds each; SAL and path length were not rerun, so the
 diffusion comparison covers two of the four metrics.
 
@@ -517,7 +639,7 @@ jerk                    & 0.332 $\pm$ 0.041 & 0.212 $\pm$ 0.030 \\
 TED                     & 0.240 $\pm$ 0.045 & 0.092 $\pm$ 0.030 \\
 \bottomrule
 \end{tabular}
-\caption{Mean best success rate under both policy classes, restricted to the
+\caption{Mean best success rate under both policy configurations, restricted to the
 five conditions run under both. TED is the worst condition under each. Jerk
 moves from indistinguishable-from-baseline under BC to above both baselines
 under diffusion. Absolute rates are lower under diffusion in every
@@ -624,11 +746,12 @@ parameterization included, omits something that can change the sign of the
 answer.
 
 \section{Discussion}
+\label{sec:discussion}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_qual_pair.pdf}
-\caption{\textbf{Failure is smooth; success is not.} A successful (left)
+\caption{\textbf{Failure stays inside the envelope; success does not.} A successful (left)
 and failed (right) can/mg demonstration, with end-effector position, TED's
 gripper-contact segment boundaries (red), the per-segment B\'ezier envelope
 (dashed), and the per-timestep envelope residual (bottom, orange bars are
@@ -661,7 +784,7 @@ structural defects; we claim only that on real robomimic data the published
 sophistication does not survive the controls that the audit literature has
 shown to be necessary.
 
-\textbf{Why TED inverts: failure is smooth.} TED's design premise is that
+\textbf{Why TED inverts: failure stays inside the envelope.} TED's design premise is that
 partitioning at gripper-contact boundaries isolates task-relevant
 abruptness, and a plausible hypothesis going in was that this would let TED
 catch failures, since canonical structural failures are contact-boundary
@@ -684,15 +807,25 @@ cleaner trajectory (0.042 vs.\ 0.144).
 
 On this task, in other words, successful manipulation \emph{requires}
 sustained high-deviation motion through the contact phase, while failure
-manifests as smooth hovering rather than as erratic thrashing. A metric that
-rewards smoothness is measuring commitment with the sign flipped. This also
-explains why raw jerk is the one metric that retains signal in
-Section~\ref{sec:detection}: jerk is high precisely in the trajectories that
-commit. We stress that these panels illustrate a mechanism rather than
-establish it; the quantitative claim is the AUROC of 0.376 in
+manifests as low-amplitude hovering that the envelope follows closely. A
+metric that rewards agreement with a smoothed envelope is measuring
+commitment with the sign flipped. Jerk sees the same two behaviors from
+the other side, which is why it is the one metric that retains signal in
+Section~\ref{sec:detection}. A committed motion is large but smooth: it
+carries the end effector far from the envelope, but its accelerations
+change gradually, so its envelope deviation is high and its jerk is low.
+Hovering is small but jittery: the end effector holds position through
+repeated gripper cycles, and what little it moves, it moves abruptly, so
+its envelope deviation is low and its jerk is high. The two demonstrations in Figure~\ref{fig:qual} show
+both readings at once, with the success at a mean jerk of 71.6 against
+124.1 for the failure while TED rates the failure cleaner, and across the
+whole split successful demonstrations have lower mean jerk than failed
+ones (85.7 vs.\ 112.8), which is the direction the 0.706 AUROC reports.
+We stress that these panels illustrate a mechanism rather than
+establish it; the quantitative claims are the AUROCs of 0.376 and 0.706 in
 Figure~\ref{fig:main}b, and the per-demonstration TED scores we inspected
 (successes 0.144 and 0.079, failures 0.042, 0.042, and 0.017) are
-consistent with but not evidence for that number.
+consistent with but not evidence for those numbers.
 
 \section{Limitations}
 \label{sec:limitations}
@@ -702,7 +835,7 @@ success-label and downstream-training results cover only Can, because Can is
 the only robomimic task shipping failure-containing splits; extending the
 success-label analysis requires datasets with real, labeled teleoperation
 failures, such as \mbox{REASSEMBLE}~\citep{reassemble} or
-DROID~\citep{droid}. Our downstream results cover two policy classes (GMM behavior
+DROID~\citep{droid}. Our downstream results cover two policy configurations (GMM behavior
 cloning and a diffusion policy); the detection results are policy-free. The
 cross-architecture grid of Section~\ref{sec:crossarch} carries three
 limitations of its own. It covers two of the four metrics, since SAL and
