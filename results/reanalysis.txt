@@ -1,0 +1,299 @@
+
+========================================================================
+0. can/mh label check (tier mean T; must match hdf5-mask output)
+========================================================================
+{0: 304.39, 1: 180.53, 2: 142.64}
+per-operator T:
+           mean  min   max
+op skill                  
+0  2      120.8   98   148
+1  0      327.1  216  1050
+2  1      147.1  110   204
+3  2      164.4  130   236
+4  0      281.7  123   706
+5  1      214.0  152   398
+
+========================================================================
+1. can/mh operators per band (better vs worse; okay excluded)
+========================================================================
+T in [0,99999] n=200 demos-per-operator={0: 50, 1: 50, 3: 50, 4: 50}
+    sal       0.952 [0.923, 0.975]
+    sal_norm  0.582 [0.499, 0.662]
+    jerk      0.584 [0.501, 0.672]
+    ted       0.558 [0.477, 0.637]
+    path_len  0.783 [0.715, 0.842]
+    T         0.957 [0.929, 0.980]
+T in [120,220] n=98 demos-per-operator={0: 24, 1: 3, 3: 48, 4: 23}
+    sal       0.793 [0.687, 0.883]
+    sal_norm  0.600 [0.478, 0.713]
+    jerk      0.862 [0.787, 0.928]
+    ted       0.653 [0.531, 0.774]
+    path_len  0.590 [0.448, 0.723]
+    T         0.801 [0.681, 0.911]
+T in [130,190] n=74 demos-per-operator={0: 14, 3: 44, 4: 16}
+    sal       0.759 [0.620, 0.879]
+    sal_norm  0.603 [0.443, 0.753]
+    jerk      0.906 [0.833, 0.967]
+    ted       0.631 [0.465, 0.777]
+    path_len  0.624 [0.460, 0.781]
+    T         0.753 [0.610, 0.890]
+T in [140,175] n=40 demos-per-operator={0: 5, 3: 28, 4: 7}
+    sal       0.628 [0.368, 0.862]
+    sal_norm  0.658 [0.372, 0.931]
+    jerk      0.896 [0.789, 0.979]
+    ted       0.359 [0.156, 0.583]
+    path_len  0.429 [0.216, 0.642]
+    T         0.485 [0.229, 0.751]
+
+========================================================================
+2. can/mh operator-pair AUROCs (one better op vs one worse op)
+========================================================================
+T in [0,99999]
+    better op0 (n=50) vs worse op1 (n=50): sal 1.000  sal_norm 0.658  jerk 0.278  ted 0.608  path_len 0.748  T 1.000
+    better op0 (n=50) vs worse op4 (n=50): sal 0.985  sal_norm 0.751  jerk 0.639  ted 0.775  path_len 0.838  T 0.985
+    better op3 (n=50) vs worse op1 (n=50): sal 0.976  sal_norm 0.396  jerk 0.454  ted 0.305  path_len 0.723  T 0.998
+    better op3 (n=50) vs worse op4 (n=50): sal 0.844  sal_norm 0.522  jerk 0.966  ted 0.545  path_len 0.824  T 0.845
+T in [140,175]
+    better op0 (n=5) vs worse op1 (n=0): too few
+    better op0 (n=5) vs worse op4 (n=7): sal 0.857  sal_norm 0.800  jerk 0.457  ted 0.657  path_len 0.086  T 0.886
+    better op3 (n=28) vs worse op1 (n=0): too few
+    better op3 (n=28) vs worse op4 (n=7): sal 0.587  sal_norm 0.633  jerk 0.974  ted 0.306  path_len 0.490  T 0.413
+
+========================================================================
+3. can/mh leave-one-operator-out (drop one of the four operators)
+========================================================================
+T in [0,99999]
+    drop op0 (n=150): sal 0.910  sal_norm 0.459  jerk 0.710  ted 0.425  path_len 0.774  T 0.921
+    drop op3 (n=150): sal 0.993  sal_norm 0.704  jerk 0.458  ted 0.692  path_len 0.793  T 0.993
+    drop op1 (n=150): sal 0.915  sal_norm 0.637  jerk 0.802  ted 0.660  path_len 0.831  T 0.915
+    drop op4 (n=150): sal 0.988  sal_norm 0.527  jerk 0.366  ted 0.456  path_len 0.736  T 0.999
+T in [140,175]
+    drop op0 (n=35): sal 0.587  sal_norm 0.633  jerk 0.974  ted 0.306  path_len 0.490  T 0.413
+    drop op3 (n=12): sal 0.857  sal_norm 0.800  jerk 0.457  ted 0.657  path_len 0.086  T 0.886
+    drop op1 (n=40): sal 0.628  sal_norm 0.658  jerk 0.896  ted 0.359  path_len 0.429  T 0.485
+    drop op4 (n=33): no worse demos left in band
+
+========================================================================
+4. can/mh paired DeLong, jerk vs SAL (same demos)
+========================================================================
+T in [0,99999] n=200: jerk 0.584 vs SAL 0.952  diff -0.367  z=-7.70  p=0.0000
+                         jerk 0.584 vs T   0.957  diff -0.373  z=-7.86  p=0.0000
+T in [120,220] n=98: jerk 0.862 vs SAL 0.793  diff +0.069  z=+1.06  p=0.2888
+                         jerk 0.862 vs T   0.801  diff +0.061  z=+0.92  p=0.3601
+T in [130,190] n=74: jerk 0.906 vs SAL 0.759  diff +0.148  z=+1.99  p=0.0468
+                         jerk 0.906 vs T   0.753  diff +0.154  z=+1.92  p=0.0546
+T in [140,175] n=40: jerk 0.896 vs SAL 0.628  diff +0.268  z=+1.94  p=0.0524
+                         jerk 0.896 vs T   0.485  diff +0.411  z=+2.84  p=0.0045
+
+========================================================================
+5. can/mh length as covariate, all 200 better/worse demos
+========================================================================
+length only (log T): AUROC 0.957  loglik -52.16
+  + sal     : std. coef -3.12 (negative = lower badness for better)  LR chi2=4.12 p=0.0424  AUROC 0.959
+  + jerk    : std. coef -1.40 (negative = lower badness for better)  LR chi2=22.60 p=0.0000  AUROC 0.973
+  + ted     : std. coef -0.23 (negative = lower badness for better)  LR chi2=0.66 p=0.4161  AUROC 0.958
+  + path_len: std. coef +0.44 (negative = lower badness for better)  LR chi2=0.50 p=0.4814  AUROC 0.957
+partial Spearman with tier, controlling for T (rank residuals):
+  sal      rho=-0.182 p=0.0099  (negative = lower badness for better)
+  jerk     rho=-0.383 p=0.0000  (negative = lower badness for better)
+  ted      rho=+0.040 p=0.5777  (negative = lower badness for better)
+  path_len rho=+0.147 p=0.0380  (negative = lower badness for better)
+
+========================================================================
+6. can/mh length-matched pairs (greedy 1:1, |dT| <= 5 steps)
+========================================================================
+21 pairs, mean dT -0.86 steps, operator pairings {'3v4': 17, '0v4': 3, '3v1': 1}
+  sal      better demo scores lower in 12/21 pairs (0.57); sign p=0.6636, Wilcoxon p=0.3377
+  jerk     better demo scores lower in 16/21 pairs (0.76); sign p=0.0266, Wilcoxon p=0.0019
+  ted      better demo scores lower in 16/21 pairs (0.76); sign p=0.0266, Wilcoxon p=0.0290
+  path_len better demo scores lower in 13/21 pairs (0.62); sign p=0.3833, Wilcoxon p=0.5168
+
+========================================================================
+7. can/mg AUROC vs success with 95% CIs (iid and checkpoint-cluster bootstrap)
+========================================================================
+  jerk     0.706  iid [0.689, 0.724]   cluster [0.573, 0.832]
+  sal      0.454  iid [0.432, 0.477]   cluster [0.392, 0.527]
+  path_len 0.421  iid [0.402, 0.440]   cluster [0.284, 0.563]
+  ted      0.376  iid [0.355, 0.396]   cluster [0.300, 0.447]
+
+========================================================================
+8. can/mg by SAC checkpoint (300 rollouts each, index order)
+========================================================================
+      success     jerk     sal    ted  path_len
+ckpt                                           
+0       0.000  169.004  54.422  0.049     2.130
+1       0.000  152.928  53.965  0.020     2.541
+2       0.000  109.403  50.771  0.060     2.216
+3       0.000   69.920  45.101  0.055     1.224
+4       0.000   80.732  46.916  0.058     1.367
+5       0.000   96.990  48.532  0.059     1.572
+6       0.010   93.234  48.202  0.066     1.665
+7       0.080  108.261  50.545  0.083     1.816
+8       0.103  106.667  50.737  0.095     1.795
+9       0.430   97.071  51.794  0.075     1.905
+10      0.437  113.986  53.025  0.080     2.006
+11      0.650  102.716  52.110  0.074     2.019
+12      0.677  100.687  51.929  0.085     2.031
+
+within-checkpoint AUROC vs success (checkpoints with >=20 of each class):
+      n_succ   jerk    sal  path_len    ted
+ckpt                                       
+7         24  0.715  0.485     0.284  0.433
+8         31  0.704  0.655     0.382  0.430
+9        129  0.850  0.499     0.464  0.499
+10       131  0.862  0.530     0.528  0.508
+11       195  0.865  0.566     0.566  0.478
+12       203  0.791  0.471     0.514  0.487
+pair-weighted mean: {'jerk': 0.823, 'sal': 0.526, 'path_len': 0.49, 'ted': 0.484}
+
+========================================================================
+9. can/mg composition of each 1950-demo training pool
+========================================================================
+pool            n  succ  share  zero-succ ckpts 0-5 ckpts 9-12     BC     DP
+oracle        716   716  1.000                0.000      0.919  0.892  0.544
+nocuration   1950   351  0.180                0.450      0.312  0.380  0.120
+random       1950   344  0.176                0.453      0.304  0.360  0.116
+sal          1950   327  0.168                0.481      0.264  0.332    nan
+jerk         1950   571  0.293                0.416      0.344  0.332  0.212
+path_len     1950   305  0.156                0.450      0.261  0.310    nan
+ted          1950   282  0.145                0.594      0.243  0.240  0.092
+overlap random/nocuration: 979 demos
+
+per-checkpoint demos kept (of 300):
+      nocuration  random  sal  jerk  path_len  ted  succ_rate
+ckpt                                                         
+0            142     154   87     0        61  180       0.00
+1            148     141   92     0         0  285       0.00
+2            141     148  158   127        63  162       0.00
+3            152     142  230   270       269  191       0.00
+4            160     144  196   239       253  165       0.00
+5            135     154  175   175       232  176       0.00
+6            160     146  180   185       211  140       0.01
+7            145     166  158   145       170   97       0.08
+8            159     163  159   139       183   81       0.10
+9            151     148  130   191       150  115       0.43
+10           145     149  119   125       139  123       0.44
+11           154     147  139   184       114  126       0.65
+12           158     148  127   170       105  109       0.68
+
+========================================================================
+0. square/mh label check (tier mean T; must match hdf5-mask output)
+========================================================================
+{0: 357.48, 1: 264.56, 2: 185.27}
+per-operator T:
+           mean  min   max
+op skill                  
+0  2      153.9  123   194
+1  0      390.3  224  1051
+2  1      228.9  151   356
+3  2      216.6  152   349
+4  0      324.6  170   775
+5  1      300.3  184   660
+
+========================================================================
+1. square/mh operators per band (better vs worse; okay excluded)
+========================================================================
+T in [0,99999] n=200 demos-per-operator={0: 50, 1: 50, 3: 50, 4: 50}
+    sal       0.898 [0.853, 0.938]
+    sal_norm  0.458 [0.381, 0.541]
+    jerk      0.431 [0.355, 0.511]
+    ted       0.663 [0.589, 0.735]
+    path_len  0.931 [0.894, 0.962]
+    T         0.936 [0.903, 0.964]
+T in [150,300] n=111 demos-per-operator={0: 27, 1: 13, 3: 47, 4: 24}
+    sal       0.759 [0.662, 0.850]
+    sal_norm  0.485 [0.361, 0.601]
+    jerk      0.570 [0.454, 0.680]
+    ted       0.685 [0.572, 0.787]
+    path_len  0.817 [0.725, 0.897]
+    T         0.824 [0.740, 0.898]
+T in [180,260] n=55 demos-per-operator={0: 5, 1: 4, 3: 32, 4: 14}
+    sal       0.529 [0.349, 0.698]
+    sal_norm  0.468 [0.291, 0.645]
+    jerk      0.782 [0.608, 0.923]
+    ted       0.599 [0.432, 0.772]
+    path_len  0.796 [0.650, 0.913]
+    T         0.613 [0.453, 0.764]
+T in [200,240] n=30 demos-per-operator={1: 2, 3: 17, 4: 11}
+    sal       0.480 [0.232, 0.718]
+    sal_norm  0.520 [0.275, 0.750]
+    jerk      0.896 [0.718, 1.000]
+    ted       0.557 [0.312, 0.792]
+    path_len  0.887 [0.730, 0.989]
+    T         0.407 [0.195, 0.639]
+
+========================================================================
+2. square/mh operator-pair AUROCs (one better op vs one worse op)
+========================================================================
+T in [0,99999]
+    better op0 (n=50) vs worse op1 (n=50): sal 0.993  sal_norm 0.431  jerk 0.012  ted 0.685  path_len 0.982  T 1.000
+    better op0 (n=50) vs worse op4 (n=50): sal 0.946  sal_norm 0.503  jerk 0.279  ted 0.624  path_len 0.875  T 0.992
+    better op3 (n=50) vs worse op1 (n=50): sal 0.901  sal_norm 0.401  jerk 0.440  ted 0.698  path_len 0.972  T 0.952
+    better op3 (n=50) vs worse op4 (n=50): sal 0.751  sal_norm 0.495  jerk 0.993  ted 0.643  path_len 0.895  T 0.801
+T in [200,240]
+    better op0 (n=0) vs worse op1 (n=2): too few
+    better op0 (n=0) vs worse op4 (n=11): too few
+    better op3 (n=17) vs worse op1 (n=2): sal 0.618  sal_norm 0.618  jerk 0.382  ted 0.441  path_len 1.000  T 0.809
+    better op3 (n=17) vs worse op4 (n=11): sal 0.455  sal_norm 0.503  jerk 0.989  ted 0.578  path_len 0.866  T 0.334
+
+========================================================================
+3. square/mh leave-one-operator-out (drop one of the four operators)
+========================================================================
+T in [0,99999]
+    drop op0 (n=150): sal 0.826  sal_norm 0.448  jerk 0.717  ted 0.671  path_len 0.934  T 0.877
+    drop op3 (n=150): sal 0.969  sal_norm 0.467  jerk 0.145  ted 0.655  path_len 0.928  T 0.996
+    drop op1 (n=150): sal 0.848  sal_norm 0.499  jerk 0.636  ted 0.634  path_len 0.885  T 0.896
+    drop op4 (n=150): sal 0.947  sal_norm 0.416  jerk 0.226  ted 0.691  path_len 0.977  T 0.976
+T in [200,240]
+    drop op0 (n=30): sal 0.480  sal_norm 0.520  jerk 0.896  ted 0.557  path_len 0.887  T 0.407
+    drop op3 (n=13): no worse demos left in band
+    drop op1 (n=28): sal 0.455  sal_norm 0.503  jerk 0.989  ted 0.578  path_len 0.866  T 0.334
+    drop op4 (n=19): sal 0.618  sal_norm 0.618  jerk 0.382  ted 0.441  path_len 1.000  T 0.809
+
+========================================================================
+4. square/mh paired DeLong, jerk vs SAL (same demos)
+========================================================================
+T in [0,99999] n=200: jerk 0.431 vs SAL 0.898  diff -0.467  z=-8.83  p=0.0000
+                         jerk 0.431 vs T   0.936  diff -0.505  z=-10.23  p=0.0000
+T in [150,300] n=111: jerk 0.570 vs SAL 0.759  diff -0.189  z=-2.22  p=0.0267
+                         jerk 0.570 vs T   0.824  diff -0.254  z=-3.07  p=0.0022
+T in [180,260] n=55: jerk 0.782 vs SAL 0.529  diff +0.254  z=+2.04  p=0.0411
+                         jerk 0.782 vs T   0.613  diff +0.169  z=+1.27  p=0.2058
+T in [200,240] n=30: jerk 0.896 vs SAL 0.480  diff +0.416  z=+3.01  p=0.0026
+                         jerk 0.896 vs T   0.407  diff +0.489  z=+3.18  p=0.0015
+
+========================================================================
+5. square/mh length as covariate, all 200 better/worse demos
+========================================================================
+length only (log T): AUROC 0.936  loglik -64.26
+  + sal     : std. coef +0.91 (negative = lower badness for better)  LR chi2=0.87 p=0.3511  AUROC 0.938
+  + jerk    : std. coef -1.14 (negative = lower badness for better)  LR chi2=17.29 p=0.0000  AUROC 0.953
+  + ted     : std. coef -0.37 (negative = lower badness for better)  LR chi2=2.45 p=0.1172  AUROC 0.939
+  + path_len: std. coef -3.58 (negative = lower badness for better)  LR chi2=17.71 p=0.0000  AUROC 0.950
+partial Spearman with tier, controlling for T (rank residuals):
+  sal      rho=+0.050 p=0.4827  (negative = lower badness for better)
+  jerk     rho=-0.299 p=0.0000  (negative = lower badness for better)
+  ted      rho=-0.145 p=0.0401  (negative = lower badness for better)
+  path_len rho=-0.333 p=0.0000  (negative = lower badness for better)
+
+========================================================================
+6. square/mh length-matched pairs (greedy 1:1, |dT| <= 5 steps)
+========================================================================
+27 pairs, mean dT -0.44 steps, operator pairings {'3v4': 14, '3v1': 10, '0v4': 3}
+  sal      better demo scores lower in 11/27 pairs (0.41); sign p=0.4421, Wilcoxon p=0.8593
+  jerk     better demo scores lower in 20/27 pairs (0.74); sign p=0.0192, Wilcoxon p=0.0017
+  ted      better demo scores lower in 18/27 pairs (0.67); sign p=0.1221, Wilcoxon p=0.1286
+  path_len better demo scores lower in 19/27 pairs (0.70); sign p=0.0522, Wilcoxon p=0.0011
+
+========================================================================
+10. can/mg standard SPARC: CIs, within-checkpoint, pool composition
+========================================================================
+  sparc    0.871  iid [0.858, 0.882]   cluster [0.820, 0.908]
+  within-checkpoint pair-weighted AUROC: 0.854
+  SPARC top-50% pool: 1950 demos, 680 successes (34.9%), 37.4% from checkpoints 1-6
+
+========================================================================
+11. can/mg mean jerk by outcome
+========================================================================
+  all checkpoints        success 85.7   failure 112.8
+  last four checkpoints  success 85.6   failure 125.5

@@ -73,7 +73,8 @@ It claims that filtering demonstrations by these metrics improves downstream pol
 ## Repo / environment
 - Repo: github.com/imjbassi/smoothness-metric-audit (private). Commits must be `imjbassi <jaiveerbassi@yahoo.com>`, **with no AI co-author lines**.
 - Windows local: `C:\Users\jaive.DESKTOP-3TNM9JL\Desktop\smoothness-metric-audit`.
-- Training: WSL `~/robomimic`, `.venv` (torch 2.13 cu130, robomimic 0.5.0, robosuite 1.4.1, mujoco 2.3.2, diffusers 0.11.1, RTX 4070).
+- Training: WSL `~/robomimic`, `.venv` (torch 2.13 cu130, robomimic 0.5.0, robosuite 1.4.1, mujoco 2.3.2, diffusers 0.11.1, RTX 4070). The original distro is gone; rebuilt 2026-11-18 as WSL `Ubuntu-22.04`, user root, `/root/robomimic` (torch 2.14.1 cu130, otherwise identical), v141 datasets in `/root/data`. Use the robomimic **v141** hdf5 files for training (the v1.5 files carry robosuite-1.5 env metadata).
+- v2 grid (55 GMM-BC runs: can/mh top-150 by SAL / length / random ×10; can/mg SPARC top-50% ×10, full 3900 ×10, random ×5 as a reproducibility anchor): `scripts/prep_grids_v2.py`, `scripts/gen_configs_v2.py`, `scripts/run_grid_v2.sh` (resumable; `bash run_grid_v2.sh 3` from `/root/robomimic`), collect with `python results/collect_v2.py --root <path to results_train_v2>`.
 - Raw runs: `results_train/` (70 BC) and `results_train_dp/` (25 diffusion). Gitignored. Configs are in `configs/` and `configs_dp/`.
 - `python results/collect2.py --from-csv results/train_results_all.csv` reproduces every reported number.
 - Build: run pdflatex from `paper/` (figures resolve via `\graphicspath{{../figures/}}`). PDFs are tracked in git; rebuild after .tex changes.

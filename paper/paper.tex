@@ -11,11 +11,10 @@
 \usepackage[numbers,sort&compress]{natbib}
 \usepackage{hyperref}
 
-\newcommand{\rinse}{\textsc{rinse}}
+\newcommand{\rinse}{\textmd{\textsc{rinse}}}
 
-\title{Smoothness Ranks Skill, Not Success:\\
-An Audit of Published Trajectory-Smoothness Curation Metrics\\
-Under Episode-Length Controls\thanks{Code and scored data:
+\title{An Audit of \rinse{}'s Smoothness Curation Metrics\\
+Under Episode-Length, Operator, and Checkpoint Controls\thanks{Code and scored data:
 \url{https://github.com/imjbassi/smoothness-metric-audit} (released on publication).}}
 
 \author{Jaiveer Bassi \\ Independent Researcher \\ \texttt{jaiveerbassi@yahoo.com}}
@@ -27,40 +26,37 @@ Under Episode-Length Controls\thanks{Code and scored data:
 \begin{abstract}
 Trajectory smoothness has been proposed as a cheap, training-free signal for
 curating imitation-learning demonstrations, most recently by \rinse{}, which
-introduces Spectral Arc Length (SAL) and a contact-aware Trajectory-Envelope
-Distance (TED) and reports downstream gains on robomimic. Recent audit work
-showed that generic curation metrics on a synthetic-defect LIBERO testbed
-largely exploit episode length rather than demonstration content. We test
-whether the \emph{specific published metrics} survive the corresponding
-controls on \emph{real} data. On robomimic can/mh, SAL separates
-better from worse operators with AUROC 0.952, but episode length alone
-achieves 0.957, and inside the tightest duration-matched band SAL falls to
-0.628 while raw mean jerk, the baseline \rinse{} argues
-against, rises to 0.896. On can/mg, where every episode is exactly 150
-steps and length cannot carry information, SAL is at chance (0.454) and TED
-is inverted (0.376) against the task-success label, while jerk reaches
-0.706. Training GMM behavior-cloning policies on each metric's curated
-subset (10 seeds per condition), curating by TED costs roughly a third of
-downstream success relative to random selection of the same size (0.240
-vs.\ 0.360, $p{=}0.0001$, surviving Bonferroni correction); path length is
-directionally harmful with weaker support, while SAL and jerk are not
-statistically distinguishable from not curating at all. Replicating the grid
-under a diffusion policy leaves TED ranked worst under both architectures,
-though at five seeds its deficit there is no longer resolvable, and reverses
-jerk from inert to significantly better than both baselines, so the curation
-decision does not transfer unchanged across the two policy configurations
-we tested.
-Inspecting individual trajectories shows why: on this task successful
-manipulation requires sustained high-deviation motion through the contact
-phase, while failure manifests as low-amplitude hovering that a smoothed
-envelope follows closely, so an envelope-based smoothness metric measures
-commitment with the sign flipped. The length
-confound replicates on a second task: on square/mh, SAL correlates $+0.96$
-with episode duration and its skill AUROC falls from 0.898 to 0.480 inside a
-duration-matched band, while jerk rises from 0.431 to 0.896. Our results
-extend the detection-vs-curation decoupling to named, published metrics, on
-operator labels rather than injected defects, and to a benchmark where the
-length confound is excluded by construction rather than by truncation.
+introduces a Spectral Arc Length (SAL) variant and a contact-aware
+Trajectory-Envelope Distance (TED). We audit those two metrics as published,
+on robomimic data with real operator-skill and task-success labels. Three
+results hold under every control we applied. First, \rinse{}'s SAL tracks
+episode length. On can/mh it separates better from worse operators with
+AUROC 0.952 while length alone achieves 0.957, the two agree within every
+pair of operators, and inside a duration-matched band SAL's interval
+includes chance (0.628 [0.378, 0.856]); square/mh behaves the same way
+(0.898 against 0.936 for length, 0.480 in the matched band). Much of the
+dependence is specific to \rinse{}'s unnormalized formula: the standard
+SPARC definition correlates with length at 0.80 and 0.72 on the two tasks,
+against 0.97 and 0.96. Second, on the two fixed-horizon machine-generated
+splits, where length carries no information, \rinse{}'s SAL is weak against
+task success (0.454 on can/mg, 0.643 on lift/mg) while standard SPARC and
+raw mean jerk are strong (SPARC 0.871 and 0.891, jerk 0.706 and 0.870). TED
+is below chance on can/mg (0.376) but above it on lift/mg (0.669), and
+within individual can/mg policy checkpoints it is at chance (0.484), so its
+inversion reflects which checkpoints it favors. Third, training GMM
+behavior-cloning policies on can/mg (10 seeds per condition), curating by
+TED costs a third of downstream success relative to a random subset of the
+same size (0.240 vs.\ 0.360, $p{=}0.0001$; $0.001$ after Bonferroni
+correction); the TED pool contains the fewest successes of any pool and the
+most rollouts from checkpoints that never succeed. One result from an
+earlier version of this paper does not hold as stated: jerk's high AUROC
+inside the duration-matched bands (0.896 on both tasks) comes from a single
+pair of operators, and across the four better/worse operator pairs it ranges
+(on the full sample) from 0.28 to 0.97 on Can and from 0.01 to 0.99 on
+Square. A five-seed
+diffusion-policy replication is reported as provisional. The claims concern
+\rinse{}'s two formulas on three robomimic tasks, not smoothness metrics as
+a class.
 \end{abstract}
 
 \section{Introduction}
@@ -99,44 +95,46 @@ has not previously been evaluated outside its authors' own
 success-filtered setting.
 \item \textbf{Real labels, not injected defects.} robomimic
 can/mh~\citep{robomimic} carries \emph{human operator skill tiers}
-(better/okay/worse) assigned to real teleoperators, and can/mg carries real
-task-success outcomes of a scripted-policy data-generation process. No defect
-is synthetic.
-\item \textbf{A length-free benchmark by construction.} In can/mg every
-episode is exactly 150 steps. The episode-length confound documented
+(better/okay/worse) assigned to real teleoperators, and can/mg and lift/mg
+carry real task-success outcomes of rollouts from checkpoints of SAC
+training runs. No defect is synthetic.
+\item \textbf{A length-free benchmark by construction.} In can/mg and
+lift/mg every episode is exactly 150 steps. The episode-length confound documented
 by~\citep{bedi-policy} cannot exist in this data, with no truncation
 required. Truncation removes the confound by discarding signal; a
 fixed-horizon dataset removes it without touching the trajectories.
 \end{enumerate}
 
 The scope of the evidence is worth stating before the results rather than
-after them. The detection results, which involve no training, cover two
-robomimic tasks, Can and Square, and use real operator skill tiers as
-labels. The success-label results cover one task, Can, because it is the
-only robomimic task that ships splits containing failures. The
-downstream-training results also cover Can only, under two policy
+after them. The detection results, which involve no training, cover the two
+robomimic tasks with operator skill tiers that we analyzed (Can and Square,
+two operators per tier) and the two tasks with machine-generated splits (Can
+and Lift). The downstream-training results cover Can only, under two policy
 configurations: a GMM behavior-cloning policy, run for all four metrics at
 ten seeds, and a diffusion policy, run for two of the four metrics at five
 seeds. The downstream claims we make about TED are therefore established
-under behavior cloning only, and the claim we make about jerk under the
-diffusion policy holds in the configuration we tested. We make no claim
-about other tasks, about human teleoperation failures, or about other
-policy configurations, and Section~\ref{sec:limitations} states what each
+under behavior cloning only, and the diffusion results are provisional. We
+make no claim about other tasks, about human teleoperation failures, about
+smoothness metrics other than the ones named, or about other policy
+configurations, and Section~\ref{sec:limitations} states what each
 extension would require.
 
-Our findings are easy to state. Smoothness metrics rank \emph{operator
-skill} largely to the extent that skill is confounded with how long the
-episode took. Once duration is controlled, by normalization or by
-duration-matched subsets, SAL's advantage collapses and raw mean jerk, the
-crude baseline the smoothness literature positions itself against, becomes
-the strongest detector. Against \emph{task success}, on fixed-length data,
-both of \rinse{}'s metrics are at or below chance, with TED inverted, while
-jerk retains signal. Curating by TED produces a behavior-cloning policy
-substantially worse than random subsampling of the same size, a result that survives correction
-for multiple comparisons; the weaker metrics are not distinguishable from
-doing nothing. Skill and success are
-different targets, and the curation literature validates on one while
-deploying against the other.
+Our findings are narrower than an earlier version of this paper stated.
+\rinse{}'s SAL ranks operator skill to the extent that skill is confounded
+with how long the episode took: it matches the episode-length baseline
+overall and within every pair of operators, and its advantage disappears
+under normalization and duration matching. Much of that dependence comes
+from \rinse{}'s formula, which omits the normalization and frequency cap of
+the standard SPARC definition~\citep{sparc}. Against task success on
+fixed-length data, \rinse{}'s SAL is weak on both machine-generated splits,
+where standard SPARC and jerk are strong; TED is below chance on Can and
+above it on Lift. Curating can/mg by TED produces a behavior-cloning policy
+substantially worse than random subsampling of the same size, a result that
+survives correction for multiple comparisons; the other metrics are not
+distinguishable from random subsets after correction. We withdraw one earlier claim, that
+raw jerk becomes the strongest skill detector once duration is controlled:
+that result is produced by a single pair of operators
+(Section~\ref{sec:operators}).
 
 \section{Related Work}
 
@@ -245,12 +243,14 @@ route.
 to duration and two are not. SAL's arc is a sum over the $T/2$ frequency
 bins of the spectrum, and on real data every bin carries some noise and
 adds to the sum, so recording the same motion for twice as long raises SAL
-even when nothing about the execution has changed. On can/mh and square/mh,
+even when nothing about the execution has changed. This is a property of
+the formula \rinse{} publishes; the standard definition normalizes it away
+(Section~\ref{sec:formal}). On can/mh and square/mh,
 SAL's correlation with $T$ is above $+0.95$ (Section~\ref{sec:detection}).
 Path length grows with distance rather than time, so a slow retrace of the
 same route scores the same as a fast one, but an operator who takes longer
-usually also travels further, and its correlation with $T$ is $+0.86$ on
-can/paired and $+0.90$ on square/mh. Jerk and TED are averages per
+usually also travels further, and its correlation with $T$ is $+0.90$ on
+square/mh (and $+0.86$ on the secondary can/paired split). Jerk and TED are averages per
 timestep (TED per step of the time alignment) and do not accumulate with
 $T$. TED's correlation with $T$ on can/mh is $+0.14$. Slowing the same
 motion down lowers every acceleration along it, so jerk, if anything,
@@ -276,7 +276,16 @@ cleaner than the committed contact-phase motion of successful ones
 robomimic control rate of 20\,Hz ($\Delta t = 0.05$\,s) and return a badness
 score (higher is worse). \emph{SAL}: spectral arc length of the end-effector
 speed profile, implemented from the published formula; we negate so that
-higher means less smooth. \emph{TED}: contact-aware trajectory-envelope
+higher means less smooth. \rinse{}'s formula takes the arc length of the
+unnormalized log-magnitude spectrum over every frequency up to Nyquist. It
+differs from the standard SPARC definition~\citep{sparc}, which normalizes
+the magnitude spectrum by its peak, rescales the frequency axis to $[0,1]$,
+and truncates the spectrum at a cutoff frequency and an amplitude threshold,
+so that the arc length does not grow with the number of spectral bins.
+\emph{SPARC}: the standard definition with its usual settings (cutoff
+10\,Hz, which is the Nyquist frequency at this control rate; amplitude
+threshold 0.05; zero-padding level 4), reported alongside \rinse{}'s SAL
+wherever the distinction matters. \emph{TED}: contact-aware trajectory-envelope
 distance, reimplemented from the \rinse{} appendix: the 6-D pose trajectory
 (position plus rotation vector, orientation weight $w_{\mathrm{ori}} =
 0.25$) is partitioned at gripper open/close transitions, each segment is fit
@@ -290,26 +299,39 @@ caveat and the sanity check we ran.
 
 \textbf{Datasets.} All data is public robomimic~\citep{robomimic} low-dim.
 \emph{can/mh}: 300 successful demonstrations from six human operators
-with released skill tiers (better/okay/worse, 100 each); episode lengths
-range 98--1050 steps. \emph{can/mg}: 3900 machine-generated demonstrations,
-18.4\% successful, every episode exactly 150 steps. \emph{can/paired}: 200
+with released skill tiers (better/okay/worse, 100 each, two operators per tier); episode lengths
+range 98--1050 steps. All skill AUROCs compare better against worse; the
+okay tier is excluded. \emph{can/mg}: 3900 machine-generated demonstrations
+(300 rollouts from each of 13 checkpoints of a SAC training run), 18.4\%
+successful, every episode exactly 150 steps. \emph{can/paired}: 200
 demonstrations in matched success/failure pairs (50\% successful), lengths
 55--147; we report it as a secondary setting because its matched-pair
 construction makes it adversarially hard for trajectory-level scores.
 \emph{square/mh}: 300 successful demonstrations with the same skill-tier
 structure (100 each), episode lengths 123--1051, used in
 Section~\ref{sec:square} to test whether the length confound is
-task-specific. We note that Can is the only robomimic task with
-failure-containing splits (\texttt{mg} and \texttt{paired}); Square,
-Transport, and Tool Hang ship only proficient-human and multi-human data,
-all of it successful. Our success-label experiments are therefore confined
-to Can by benchmark availability, not by choice.
+task-specific. We note that robomimic ships machine-generated (\texttt{mg}) splits for Can
+and Lift only, and a \texttt{paired} split for Can only; Square, Transport,
+and Tool Hang ship only proficient-human and multi-human data, all of it
+successful. \emph{lift/mg}: 1500 machine-generated demonstrations (300 rollouts from
+each of 5 SAC checkpoints), 16.2\% successful at the final step, every
+episode exactly 150 steps (Section~\ref{sec:lift}). The lift/mg scores and
+all SPARC scores were computed from the v1.5 release of the files; episode
+lengths and success labels are identical to the v1.4.1 files used for the
+other scores, and recomputed SAL and jerk agree to rounding error.
 
 \textbf{Statistics.} All AUROCs are reported with 95\% bootstrap confidence
 intervals (2000 resamples). Downstream comparisons use difference-of-means
 bootstrap CIs (20{,}000 resamples) and Welch two-sample tests, with
-Bonferroni correction applied across the full set of reported comparisons;
-we mark which results survive correction and which do not. For skill we report better-vs-worse AUROC; for
+Bonferroni correction applied within each architecture's grid (8 BC tests,
+4 diffusion tests; pooling all 12 changes no conclusion); we mark which
+results survive correction and which do not. The band CIs in
+Tables~\ref{tab:bands} and~\ref{tab:square} come from our original band
+analysis; the reanalysis scripts that produce the operator-level and
+SPARC numbers use a different bootstrap seed, so their intervals for the
+same cells differ in the second or third decimal. Two AUROCs
+computed on the same demonstrations are compared with the paired DeLong
+test. For skill we report better-vs-worse AUROC; for
 success we report AUROC against the binary success label with scores negated
 so that AUROC $>$ 0.5 means the metric ranks clean/successful demonstrations
 higher, and AUROC $<$ 0.5 means the metric is \emph{inverted}.
@@ -319,18 +341,27 @@ higher, and AUROC $<$ 0.5 means the metric is \emph{inverted}.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{fig_main.pdf}
-\caption{\textbf{Smoothness metrics rank duration, not quality.}
+\includegraphics[width=\linewidth]{fig_main_v2.pdf}
+\caption{\textbf{\rinse{}'s SAL tracks duration.}
 (a) Better-vs-worse operator AUROC on can/mh across duration bands of
 increasing tightness (shaded: 95\% bootstrap CI). SAL (red) tracks the
 episode-length baseline (gray, dashed) almost exactly and falls from 0.952
 to 0.628 as the band tightens; raw jerk (blue) moves the opposite way,
-0.584 to 0.896; TED (green) never clears chance and inverts in the
-tightest band. In that band episode length itself is at chance
-(0.485), confirming the control. (b) On can/mg every episode is exactly
-150 steps, so length carries no information by construction; against the
-task-success label, jerk retains signal (0.706), SAL is at chance
-(0.454), and TED is inverted (0.376).}
+0.584 to 0.896; standard SPARC (orange) starts lower (0.764) and is at
+chance in the tightest band (0.506); TED (green) is near chance in most
+bands, clears it only in the widest band (0.653), and falls to 0.359 in the
+tightest, with a CI that spans chance. In that band episode length itself is at
+chance (0.485), confirming the control. (b) On can/mg every episode is
+exactly 150 steps, so length carries no information by construction;
+against the task-success label, SPARC (0.871) and jerk (0.706) retain
+signal, SAL is at chance (0.454), and TED is below chance (0.376); error
+bars are 95\% checkpoint-cluster bootstrap CIs. (c) lift/mg, also 150
+steps: SPARC and jerk are strong, SAL and TED weak but above chance, path
+length below it; error bars are iid bootstrap CIs (five checkpoints are
+too few to cluster). Two caveats established later:
+jerk's rise in (a) reflects a single pair of operators
+(Section~\ref{sec:operators}), and TED in (b) is at chance within individual
+checkpoints (Section~\ref{sec:mg}).}
 \label{fig:main}
 \end{figure}
 
@@ -351,19 +382,22 @@ Second, \emph{duration matching}: restricting to bands of increasingly
 similar episode length (Figure~\ref{fig:main}a, Table~\ref{tab:bands}). In
 the tightest band ($T \in [140,175]$, $n{=}40$), where length itself is at
 chance (0.485 [0.227, 0.740]), SAL is 0.628 [0.378, 0.856], a CI that
-includes chance, while raw jerk is 0.896 [0.783, 0.980]. Across the four
-bands the two metrics \emph{cross}: as the confound is removed, the crude
-metric strengthens monotonically (0.584, 0.862, 0.906, 0.896) and the
-sophisticated one weakens monotonically (0.952, 0.793, 0.759, 0.628).
+includes chance, while raw jerk is 0.896 [0.783, 0.980]. As the confound
+is removed, SAL weakens at every step (0.952, 0.793, 0.759, 0.628) while
+jerk strengthens and then levels off (0.584, 0.862, 0.906, 0.896). Only
+SAL's side of this pattern is part of our claim: Section~\ref{sec:operators}
+shows that it is robust to operator composition, whereas jerk's rise is
+produced by which operators each band retains.
 
-TED never clears chance in any band (0.558 full-sample, upper CI 0.636)
-and inverts to 0.359 in the tightest band. TED does \emph{not}
-have the length pathology (correlation $+0.14$ with $T$); it simply carries
-little skill signal on this data.
+TED is near chance in most bands (0.558 full-sample); its one interval that
+excludes chance is 0.653 [0.522, 0.776] in the widest band, and in the
+tightest band it falls to 0.359 with an interval that spans chance. TED
+does \emph{not} have the length pathology (correlation $+0.14$ with $T$);
+it simply carries little skill signal on this data.
 
 We caution that the tightest band retains only 7 worse-operator
-demonstrations and its intervals are wide; the claim rests on the
-\emph{trend} across all four bands and its agreement with the normalization
+demonstrations and its intervals are wide; the claim about SAL rests on its
+trend across all four bands and its agreement with the normalization
 control, not on any single cell. We also note that na\"ive per-timestep
 normalization is only appropriate for metrics whose raw value grows with
 $T$; normalized path length, for example, becomes an inverse-speed proxy
@@ -378,7 +412,7 @@ Table~\ref{tab:bands}.
 & full ($n{=}200$) & $T \in [120,220]$ ($n{=}98$) & $T \in [130,190]$ ($n{=}74$) & $T \in [140,175]$ ($n{=}40$) \\
 \midrule
 SAL       & 0.952 [.922,.975] & 0.793 [.690,.881] & 0.759 [.628,.875] & 0.628 [.378,.856] \\
-SAL$/T$   & 0.582 [.497,.662] & 0.600 [.479,.715] & 0.603 [.446,.755] & 0.658 [.342,.923] \\
+SAL$/(T{-}1)$ & 0.582 [.497,.662] & 0.600 [.479,.715] & 0.603 [.446,.755] & 0.658 [.342,.923] \\
 TED       & 0.558 [.480,.636] & 0.653 [.522,.776] & 0.631 [.468,.779] & 0.359 [.147,.583] \\
 jerk      & 0.584 [.505,.665] & 0.862 [.783,.928] & 0.906 [.832,.965] & 0.896 [.783,.980] \\
 path len. & 0.783 [.718,.842] & 0.590 [.449,.730] & 0.624 [.461,.781] & 0.429 [.215,.645] \\
@@ -397,20 +431,66 @@ proxies rather than duration-free measures of smoothness.}
 \end{table}
 
 \subsection{Task success on can/mg: the confound removed by construction}
+\label{sec:mg}
 
 The can/mg split fixes every episode at 150 steps, so no metric can exploit
 duration. Against the success label (716 of 3900 successful), jerk achieves
-0.706, SAL 0.454, path length 0.421, and TED 0.376
-(Figure~\ref{fig:main}b). The length baseline is exactly 0.500, as it must
+0.706 [0.689, 0.724], SAL 0.454 [0.432, 0.477], path length 0.421 [0.402,
+0.440], and TED 0.376 [0.355, 0.396] (Figure~\ref{fig:main}b). Those
+intervals resample rollouts. The split is 13 checkpoints of 300 rollouts
+whose success rate rises from 0\% to 68\%, so rollouts are not independent;
+resampling whole checkpoints gives jerk [0.573, 0.832], SAL [0.392, 0.527],
+path length [0.284, 0.563], and TED [0.300, 0.447]. The length baseline is exactly 0.500, as it must
 be. Per-timestep normalization leaves every AUROC unchanged, as expected
 under a constant divisor, which we report as a consistency check.
 
-Two readings of this result matter. First, both of \rinse{}'s metrics are at
-or below chance on the label practitioners actually deploy against. TED's
-inversion means that filtering by TED \emph{preferentially retains failed
-demonstrations}. Second, the ordering among metrics reverses relative to the
-uncontrolled skill setting: the metric that looked worst there (jerk) is the
-only one with signal here.
+Both of \rinse{}'s metrics are at or below chance on this split. Three
+qualifications change how that should be read.
+
+First, the comparison is confounded with checkpoint. The first six
+checkpoints contain no successes at all, so a metric can score well or badly
+against success simply through how it rates early-training rollouts.
+Restricting to the six checkpoints with at least 20 rollouts of each
+outcome, and weighting each by its number of success/failure pairs, the
+within-checkpoint AUROCs are jerk 0.823, SAL 0.526, path length 0.490, and
+TED 0.484. Among rollouts of the same policy TED is at chance. Its pooled
+inversion arises because it gives its best scores to the second checkpoint
+(mean 0.020, against 0.049--0.095 for the others), which never succeeds.
+Filtering by TED does preferentially retain failed demonstrations in this
+pool, but it does so through checkpoint identity, not through a
+within-policy preference for failures. Jerk's signal, by contrast, is
+stronger within checkpoints than pooled.
+
+Second, SAL's weakness is specific to \rinse{}'s formula. Standard SPARC
+reaches 0.871 on the same rollouts ([0.858, 0.882] resampling rollouts,
+[0.820, 0.908] resampling checkpoints) and 0.854 within checkpoints.
+
+Third, TED's result does not replicate on the second machine-generated
+split, which we turn to next.
+
+\subsection{A second success-label task: lift/mg}
+\label{sec:lift}
+
+robomimic's other machine-generated split has the same construction: 1500
+rollouts from five SAC checkpoints, each exactly 150 steps, of which 243
+(16.2\%) end in success. Only the last two checkpoints contain successes
+(17\% and 64\%). Against the success label, standard SPARC reaches 0.891
+[0.861, 0.919], jerk 0.870 [0.843, 0.894], TED 0.669 [0.639, 0.700],
+\rinse{}'s SAL 0.643 [0.607, 0.679], and path length 0.431 [0.401, 0.462].
+Within the two checkpoints that have successes, the AUROCs are SPARC 0.739
+and 0.863, jerk 0.806 and 0.862, TED 0.612 and 0.740, SAL 0.537 and 0.691,
+and path length 0.245 and 0.597. Scoring success as any rewarded step (316
+rollouts) instead of the final step changes no ordering. With five
+checkpoints a checkpoint-level bootstrap is uninformative and we do not
+report one.
+
+Two things carry over from Can and one does not. Jerk and standard SPARC
+separate successes from failures on both tasks, pooled and within
+checkpoint, and \rinse{}'s SAL is the weaker of the two spectral measures on
+both. TED is not inverted on Lift. The statement that TED cannot tell
+failures from successes therefore holds for can/mg and not for
+machine-generated data in general. We have not run downstream training on
+Lift.
 
 \subsection{Secondary setting: can/paired}
 
@@ -440,26 +520,28 @@ skill AUROC is 0.898 [0.852, 0.936] against a length-alone baseline of 0.936
 figure. Path length behaves the same way, reaching 0.931 [0.893, 0.963]
 uncontrolled with a $+0.90$ duration correlation.
 
-The crossover also replicates (Table~\ref{tab:square}). As the duration band
-tightens and the length baseline falls from 0.936 to 0.407, SAL falls
-monotonically (0.898, 0.759, 0.529, 0.480) while jerk rises monotonically
-(0.431, 0.570, 0.782, 0.896). In the band where duration is genuinely
-controlled ($T \in [200,240]$, length AUROC 0.407), jerk reaches 0.896
-[0.724, 1.000], numerically identical to its value in Can's tightest band,
-while SAL sits at 0.480 [0.250, 0.701], a CI centred on chance.
+SAL's loss of signal also replicates (Table~\ref{tab:square}). As the
+duration band tightens and the length baseline falls from 0.936 to 0.407,
+SAL falls at every step (0.898, 0.759, 0.529, 0.480), to a CI centered on
+chance in the band where duration is genuinely controlled ($T \in
+[200,240]$, length AUROC 0.407): 0.480 [0.250, 0.701]. Jerk rises over the
+same bands (0.431, 0.570, 0.782, 0.896) and reaches the same 0.896 it
+reaches in Can's tightest band, but as on Can that value depends on which
+operators the band retains (Section~\ref{sec:operators}).
 
 Two differences from Can are worth stating. First, jerk is \emph{inverted}
 on Square before any control is applied (0.431), where on Can it was weakly
 positive (0.584); the uncontrolled ranking of metrics is therefore itself
-task-dependent, even though the controlled ranking is not. Second, path
+task-dependent, even though SAL's loss of its advantage under the control
+is not. Second, path
 length remains strong in the controlled band on Square (0.887 [0.742,
 0.991]) where it collapsed on Can (0.429 [0.215, 0.645]). We do not claim
 jerk or path length is a good curation metric on the strength of these
 numbers; the point is narrower, that whatever advantage SAL displays over
 them disappears once duration is held fixed, on both tasks. The tightest
-Square band retains 13 worse-operator demonstrations, so as with Can the
-claim rests on the monotone trend across bands rather than on any single
-cell.
+Square band retains 13 worse-operator demonstrations, 11 of them from one
+operator, so as with Can the claim about SAL rests on its trend across
+bands rather than on any single cell.
 
 \begin{table}[t]
 \centering
@@ -469,7 +551,7 @@ cell.
 & full ($n{=}200$) & $T \in [150,300]$ ($n{=}111$) & $T \in [180,260]$ ($n{=}55$) & $T \in [200,240]$ ($n{=}30$) \\
 \midrule
 SAL       & 0.898 [.852,.936] & 0.759 [.658,.849] & 0.529 [.344,.702] & 0.480 [.250,.701] \\
-SAL$/T$   & 0.458 [.376,.536] & 0.485 [.372,.602] & 0.468 [.300,.653] & 0.520 [.280,.738] \\
+SAL$/(T{-}1)$ & 0.458 [.376,.536] & 0.485 [.372,.602] & 0.468 [.300,.653] & 0.520 [.280,.738] \\
 TED       & 0.663 [.584,.736] & 0.685 [.577,.788] & 0.599 [.427,.758] & 0.557 [.335,.785] \\
 jerk      & 0.431 [.349,.509] & 0.570 [.455,.687] & 0.782 [.618,.923] & 0.896 [.724,1.000] \\
 path len. & 0.931 [.893,.963] & 0.817 [.726,.895] & 0.796 [.654,.913] & 0.887 [.742,.991] \\
@@ -479,12 +561,91 @@ length $T$ & 0.936 [.902,.964] & 0.824 [.738,.898] & 0.613 [.456,.766] & \textbf
 \end{tabular}
 \caption{Better-vs-worse operator AUROC on \emph{square}/mh across duration
 bands, with 95\% bootstrap CIs, in the same format as
-Table~\ref{tab:bands}. The bottom row is the control. The SAL/jerk
-crossover observed on Can reproduces here: SAL tracks the length baseline
-down while jerk rises, and in the band where length is at chance jerk
-reaches the same 0.896 it reaches in Can's tightest band.}
+Table~\ref{tab:bands}. The bottom row is the control. As on Can, SAL
+tracks the length baseline down; jerk rises to the same 0.896 it reaches in
+Can's tightest band, but Section~\ref{sec:operators} shows that jerk's value
+in both bands comes from the same pair of operators.}
 \label{tab:square}
 \end{table}
+
+\subsection{What survives operator-level and paired checks}
+\label{sec:operators}
+
+Each skill tier contains two operators, so a better-vs-worse AUROC over 200
+demonstrations compares two people with two people, and a duration band can
+change which people are being compared. It does. Writing B1, B2 for the two
+better-tier operators and W1, W2 for the two worse-tier operators, in
+robomimic's numbering: in Can's tightest band all 7 worse-tier
+demonstrations come from W1, and 28 of the 33 better-tier demonstrations
+come from B2. In Square's tightest band all 17 better-tier demonstrations
+come from B2, and 11 of the 13 worse-tier demonstrations from W1. The two
+duration-controlled bands are, to a close approximation, the same single
+pair of operators.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lcccccccc}
+\toprule
+& \multicolumn{4}{c}{can/mh} & \multicolumn{4}{c}{square/mh} \\
+\cmidrule(lr){2-5}\cmidrule(l){6-9}
+operator pair & SAL & $T$ & SPARC & jerk & SAL & $T$ & SPARC & jerk \\
+\midrule
+B1 vs.\ W1 & 0.985 & 0.985 & 0.786 & 0.639 & 0.946 & 0.992 & 0.809 & 0.279 \\
+B1 vs.\ W2 & 1.000 & 1.000 & 0.715 & 0.278 & 0.993 & 1.000 & 0.833 & 0.012 \\
+B2 vs.\ W1 & 0.844 & 0.845 & 0.816 & 0.966 & 0.751 & 0.801 & 0.781 & 0.993 \\
+B2 vs.\ W2 & 0.976 & 0.998 & 0.738 & 0.454 & 0.901 & 0.952 & 0.804 & 0.440 \\
+\bottomrule
+\end{tabular}
+\caption{Better-vs-worse AUROC for each pair of one better-tier and one
+worse-tier operator (50 demonstrations each, no duration band). SAL follows
+episode length $T$ in every pair. Jerk ranges from far below chance to near
+perfect depending on which two operators are compared.}
+\label{tab:operators}
+\end{table}
+
+\textbf{SAL's dependence on length is robust to this.} SAL and episode
+length agree to within 0.06 in all eight operator pairs
+(Table~\ref{tab:operators}).
+
+\textbf{Jerk's rise is not.} Its AUROC ranges from 0.278 to 0.966 across
+operator pairs on Can and from 0.012 to 0.993 on Square, and the high value
+in each tightest band is the B2-vs-W1 pair: 0.974 in Can's band and 0.989 in
+Square's. Against the other operators present in those bands it is 0.457
+(B1 vs.\ W1 on Can, 5 against 7 demonstrations) and 0.382 (B2 vs.\ W2 on
+Square, 17 against 2). Jerk is negatively correlated with episode length
+($-0.17$ on Can, $-0.26$ on Square), and the fastest operator, B1, has high
+jerk. What the bands show is that one better-tier operator moves with lower
+jerk than one worse-tier operator at matched duration, on both tasks. That
+is a fact about two people, and we do not generalize it.
+
+\textbf{Paired tests.} In the tightest bands the paired DeLong difference
+between jerk and SAL is $+0.268$ on Can ($p = 0.052$) and $+0.416$ on Square
+($p = 0.003$). Given the operator composition above, these tests compare the
+two metrics on essentially one operator pair.
+
+\textbf{Length as a covariate.} Using all 200 better/worse demonstrations
+instead of a band, we fit a logistic regression of tier on $\log T$ and test
+whether adding each metric improves it. Jerk does on both tasks (likelihood
+ratio $\chi^2 = 22.6$ and $17.3$, $p < 0.0001$). SAL does marginally on Can
+($\chi^2 = 4.1$, $p = 0.04$) and not on Square ($p = 0.35$). TED does on
+neither ($p = 0.42$ and $0.12$). Path length does on Square only
+($\chi^2 = 17.7$, $p < 0.0001$; Can $p = 0.48$). In greedy one-to-one
+matching of better to worse demonstrations within 5 steps of each other (21
+pairs on Can, 27 on Square), the better demonstration has lower jerk in 16
+of 21 and 20 of 27 pairs (sign test $p = 0.027$ and $0.019$) and lower SAL
+in 12 of 21 and 11 of 27 ($p = 0.66$ and $0.44$). These analyses are not
+independent of the operator finding: 17 of the 21 Can pairs and 14 of the 27
+Square pairs are B2 with W1.
+
+\textbf{Standard SPARC.} SPARC correlates with episode length at $+0.80$ on
+Can and $+0.72$ on Square, against $+0.97$ and $+0.96$ for \rinse{}'s SAL,
+so the length dependence is reduced by the standard normalization but not
+removed. Its uncontrolled skill AUROC is 0.764 [0.696, 0.825] on Can and
+0.806 [0.747, 0.864] on Square, below the length baseline on both, and in
+the tightest bands it is 0.506 [0.270, 0.762] and 0.756 [0.569, 0.917]. It
+is the most stable of the metrics across operator pairs (0.72--0.82 on Can,
+0.78--0.83 on Square).
 
 \section{Does Detection Predict Curation? Downstream Training}
 \label{sec:training}
@@ -494,10 +655,15 @@ about~\citep{bedi-policy}; the trained policy is. We therefore filter can/mg
 by each metric at a 50\% keep fraction and train a GMM behavior-cloning
 policy (MLP $1024{\times}1024$, 5 modes, batch 100, 600 epochs of 500
 gradient steps, learning rate $10^{-4}$) on each curated subset, with 50
-evaluation rollouts (horizon 400) every 150 epochs and the best checkpoint
-reported per seed. Conditions: TED, SAL, jerk, path length, plus three
+evaluation rollouts (horizon 400) at eight points per run (epochs 100, 150,
+200, 300, 400, 450, 500, and 600: every 150 epochs plus each 100-epoch
+checkpoint save) and the best of the eight reported per seed. Conditions: TED, SAL, jerk, path length, plus three
 references: an \emph{oracle} keeping only successful demonstrations, a
-\emph{random} 50\% subset, and an uncurated size-matched control. Ten seeds
+\emph{random} 50\% subset, and a second, independent random 50\% subset that
+our tables label ``no curation''. That label is a misnomer kept for
+continuity with the released results: it is a size-matched random draw
+(sharing 979 demonstrations with the first), not the full
+3900-demonstration pool, which we did not train on. Ten seeds
 per condition. All filtered pools contain 1950 demonstrations except the
 oracle (716, the number of successes that exist); we therefore treat the
 oracle as a ceiling reference rather than a matched condition.
@@ -511,7 +677,7 @@ condition & pool size & best success rate (mean $\pm$ std) & 95\% CI \\
 \midrule
 oracle (successes only) & 716 & 0.892 $\pm$ 0.048 & [0.866, 0.922] \\
 \midrule
-no curation             & 1950 & 0.380 $\pm$ 0.063 & [0.344, 0.420] \\
+no curation (2nd random 50\%) & 1950 & 0.380 $\pm$ 0.063 & [0.344, 0.420] \\
 random 50\%             & 1950 & 0.360 $\pm$ 0.061 & [0.326, 0.398] \\
 \midrule
 SAL                     & 1950 & 0.332 $\pm$ 0.061 & [0.298, 0.370] \\
@@ -547,7 +713,7 @@ SAL         & $-0.028$ [$-0.080$, $+0.024$] & 0.32 & $-0.048$ [$-0.098$, $+0.002
 condition and the two baselines, with 95\% bootstrap CIs on the difference
 (20{,}000 resamples) and Welch two-sample $p$-values. Bold marks the
 comparisons surviving Bonferroni correction across all eight tests
-($\alpha = 0.05/8 = 0.006$). Only TED clears that bar. For reference,
+($\alpha = 0.05/8 = 0.00625$). Only TED clears that bar (Bonferroni-adjusted $p = 0.001$ and $0.0002$). For reference,
 random and no-curation are themselves indistinguishable
 ($\Delta = -0.020$, CI $[-0.072, +0.032]$).}
 \label{tab:tests}
@@ -555,9 +721,9 @@ random and no-curation are themselves indistinguishable
 
 Table~\ref{tab:training} answers the question Section~\ref{sec:detection}
 could only pose, and Table~\ref{tab:tests} reports the comparisons that
-matter. Two results are unambiguous. Curating by TED costs roughly a third
+matter. One result is unambiguous. Curating by TED costs roughly a third
 of downstream success relative to random selection of the same size
-($-0.120$, $p = 0.0001$) and relative to not curating at all ($-0.140$,
+($-0.120$, $p = 0.0001$) and relative to the second random draw ($-0.140$,
 $p < 0.0001$); both survive Bonferroni correction across the eight
 comparisons we report. Path length is directionally harmful with weaker
 support ($p = 0.037$ and $p = 0.0071$), clearing conventional significance
@@ -574,24 +740,65 @@ we apply the same standard to our own results: the defensible claim is about
 TED, not about smoothness metrics as a class.
 
 What the grid does establish irrespective of any single comparison is that
-under this policy configuration none of these metrics recovers usable signal that is
-demonstrably present.
+under this policy configuration none of the four metrics we trained on
+converts the signal that the oracle shows is present into a better policy.
 An oracle keeping only true successes reaches 0.892 [0.866, 0.922], roughly
-2.5$\times$ the best metric-curated condition, so the pool contains ample
-information about which demonstrations to keep; the trajectory statistics
-simply do not find it. Random subsampling and the uncurated control are
-themselves indistinguishable ($\Delta = -0.020$, CI spanning zero), which is
-the sanity check one wants: at a 50\% keep fraction on this data, discarding
-demonstrations at random costs nothing measurable, so any deficit a metric
-shows is attributable to \emph{which} demonstrations it discards rather than
-to the reduction in pool size.
+2.7$\times$ the best metric-curated condition, so the pool contains ample
+information about which demonstrations to keep; these four trajectory
+statistics do not find it. The two random draws are themselves indistinguishable
+($\Delta = -0.020$, CI spanning zero), which bounds the variation between
+equally sized random pools. Every non-oracle condition has 1950
+demonstrations, so a metric's deficit reflects \emph{which} demonstrations
+it keeps; the effect of halving the pool is untested, since no run used all
+3900.
 
-The downstream ordering tracks the detection ordering imperfectly. TED is
-worst in both, and path length is weak in both, but jerk has the best
-detection AUROC on can/mg (0.706) while landing indistinguishable from SAL
-downstream, whose detection AUROC is near chance (0.454). Detection accuracy
-is at best a coarse predictor of curation value, consistent with the
-decoupling reported by~\citep{bedi-policy} on a different testbed.
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lccccc}
+\toprule
+pool & successes & share & from checkpoints 1--6 & BC & diffusion \\
+\midrule
+oracle                  & 716 & 100\%  & 0\%    & 0.892 & 0.544 \\
+no curation (2nd random 50\%) & 351 & 18.0\% & 45.0\% & 0.380 & 0.120 \\
+random 50\%             & 344 & 17.6\% & 45.3\% & 0.360 & 0.116 \\
+SAL                     & 327 & 16.8\% & 48.1\% & 0.332 & --- \\
+jerk                    & 571 & 29.3\% & 41.6\% & 0.332 & 0.212 \\
+path length             & 305 & 15.6\% & 45.0\% & 0.310 & --- \\
+TED                     & 282 & 14.5\% & 59.4\% & 0.240 & 0.092 \\
+\midrule
+SPARC (not trained)     & 680 & 34.9\% & 37.4\% & --- & --- \\
+\bottomrule
+\end{tabular}
+\caption{Composition of each training pool on can/mg: number and share of
+successful demonstrations, share drawn from the six checkpoints that never
+succeed, and mean best policy success under each configuration. All pools
+have 1950 demonstrations except the oracle (716).}
+\label{tab:pools}
+\end{table}
+
+Table~\ref{tab:pools} shows what each metric actually selected. For five of
+the six non-oracle pools, behavior-cloning success follows the number of
+successes in the pool, and that is the simplest account of TED's harm: its
+pool has the fewest successes and draws 59\% of its demonstrations from
+checkpoints that never succeed, including 285 of the 300 rollouts of the
+second checkpoint.
+
+Jerk is the exception, and we do not have an explanation for it. Its pool
+contains 66\% more successes than a random one (571 against 344) and no
+rollouts at all from the first two checkpoints, yet it trains no better than
+random under behavior cloning. One observation that may bear on it: the
+jerk pool keeps 270 and 239 of the 300 rollouts from the fourth and fifth
+checkpoints, which never succeed and have the lowest mean jerk of any
+checkpoint (69.9 and 80.7, against 93--169 elsewhere), against roughly 150 each
+in a random pool. Whether that over-representation is what cancels the extra
+successes is untested. Detection accuracy and pool composition are at best
+coarse predictors of curation value here, consistent with the decoupling
+reported by~\citep{bedi-policy} on a different testbed.
+
+A pool selected by standard SPARC would contain 680 of the 716 successes. We
+have not trained on it, and given the jerk result we do not assume that its
+success share predicts its outcome.
 
 \subsection{Cross-architecture replication under a diffusion policy}
 \label{sec:crossarch}
@@ -601,8 +808,7 @@ distinguish a property of the metric from a property of behavior cloning. We
 therefore replicated it under a diffusion policy on the same curated
 subsets: same keep fraction, same 1950-demonstration pools, same 600 epochs
 of 500 gradient steps, same learning rate ($10^{-4}$), and the same
-evaluation protocol (50 rollouts, horizon 400, every 150 epochs, best
-checkpoint per seed).\footnote{Reporting the best checkpoint per seed is a
+evaluation protocol (50 rollouts, horizon 400, the same eight evaluation epochs, best of eight per seed).\footnote{Reporting the best checkpoint per seed is a
 maximum over the eight evaluations each run receives, and is therefore
 biased upward; both grids are evaluated eight times, so the bias is
 symmetric across architectures. Recomputing every comparison with the
@@ -618,8 +824,8 @@ down-dims, kernel 5, 8 groups, 256-dimensional diffusion-step embedding)
 with EMA (power 0.75), an observation horizon of 2, action horizon of 8, and
 prediction horizon of 16, using a DDIM noise scheduler with 10 inference
 steps. Batch size (256 vs.\ 100) and the sequence modeling are inherent to
-the architecture and are the only respects in which the two grids differ by
-more than the policy configuration. We ran five conditions (TED, jerk, and the three
+the architecture and are the only differences between the two grids beyond
+the policy architecture itself. We ran five conditions (TED, jerk, and the three
 references) with five seeds each; SAL and path length were not rerun, so the
 diffusion comparison covers two of the four metrics.
 
@@ -632,7 +838,7 @@ condition & GMM-BC (10 seeds) & diffusion (5 seeds) \\
 \midrule
 oracle (successes only) & 0.892 $\pm$ 0.048 & 0.544 $\pm$ 0.030 \\
 \midrule
-no curation             & 0.380 $\pm$ 0.063 & 0.120 $\pm$ 0.014 \\
+no curation (2nd random 50\%) & 0.380 $\pm$ 0.063 & 0.120 $\pm$ 0.014 \\
 random 50\%             & 0.360 $\pm$ 0.061 & 0.116 $\pm$ 0.017 \\
 \midrule
 jerk                    & 0.332 $\pm$ 0.041 & 0.212 $\pm$ 0.030 \\
@@ -642,9 +848,10 @@ TED                     & 0.240 $\pm$ 0.045 & 0.092 $\pm$ 0.030 \\
 \caption{Mean best success rate under both policy configurations, restricted to the
 five conditions run under both. TED is the worst condition under each. Jerk
 moves from indistinguishable-from-baseline under BC to above both baselines
-under diffusion. Absolute rates are lower under diffusion in every
-condition, by factors ranging from $1.6\times$ (oracle) to $3.1\times$ (the
-two baselines).}
+under diffusion, in the configuration we tested (provisional: five seeds,
+low success rates). Absolute rates are lower under diffusion in every
+condition, by factors ranging from $1.6\times$ (oracle, jerk) to
+$3.0$--$3.2\times$ (the two baselines).}
 \label{tab:crossarch}
 \end{table}
 
@@ -693,19 +900,22 @@ equal.
 Second, jerk reverses sign. Under BC it is indistinguishable from both
 baselines ($p \geq 0.06$); under diffusion it beats both by $+0.096$ and
 $+0.092$, and both comparisons survive correction. This is the largest
-effect in the diffusion grid, and it runs opposite to the paper's headline:
-at least one crude trajectory statistic, never proposed as a curation
-metric, has genuine curation value in the configuration we tested. It is
-also the second time in this work that jerk outperforms the metrics
-motivated against it, the first being detection inside a duration-matched
-band. What may drive the reversal is taken up below.
+effect in the diffusion grid, and it runs opposite to the behavior-cloning
+grid: a crude trajectory statistic, never proposed as a curation metric,
+shows curation value in the configuration we tested. The jerk
+pool also contains the most successes of any metric-curated pool
+(Table~\ref{tab:pools}), so the open question is less why it helps under
+diffusion than why it does not under behavior cloning. With five seeds at
+success rates near 0.1--0.2, we treat the reversal as provisional. What may
+drive it is taken up below.
 
 Third, absolute success rates are lower under diffusion in every condition,
-by factors ranging from $1.6\times$ on the oracle (0.544 vs.\ 0.892) to
-$3.1\times$ on the two baselines, at a matched epoch and evaluation budget
-in which the diffusion runs in fact saw more samples per epoch (batch 256
-vs.\ 100). The gap is therefore not a uniform offset: it is widest exactly
-on the mixed-quality pools the curation comparison runs on.
+by factors ranging from $1.6\times$ on the oracle (0.544 vs.\ 0.892) and on
+jerk (0.212 vs.\ 0.332) to $3.0$--$3.2\times$ on the two baselines, at a
+matched epoch and evaluation budget in which the diffusion runs in fact saw
+more samples per epoch (batch 256 vs.\ 100). The gap is therefore not a
+uniform offset: it is widest on the two random pools and narrowest on the
+two pools with the highest share of successes.
 
 One explanation can be ruled out. The diffusion runs show no measurable
 improvement over the second half of training: averaged across all 25 runs,
@@ -724,8 +934,9 @@ survive contact with the training curves, which narrows the space of
 remaining explanations without confirming one. One candidate is action
 parameterization: our runs used robomimic's default delta actions, which
 Chi et al.~\citep{chi-dp} report handicap diffusion policy while helping BC,
-so the gap and the jerk reversal may partly reflect it, and the policy-class
-reading of both is provisional. The consequence for reading
+so the gap and the jerk reversal may partly reflect it, and reading either
+as a property of the policy configuration (architecture and action
+parameterization) is provisional. The consequence for reading
 Table~\ref{tab:crossarch} is concrete: the two
 columns are not operating at comparable points on the success scale, so
 cross-architecture comparisons of absolute differences are weaker than
@@ -766,29 +977,45 @@ Figure~\ref{fig:main}b.}
 \label{fig:qual}
 \end{figure}
 
-\textbf{Skill and success are different targets.} The same metric family
-gives opposite verdicts depending on the label. Under an uncontrolled skill
-label, SAL looks nearly perfect; under a length-controlled skill label it is
-marginal; under a success label on fixed-length data it is at chance and TED
-is inverted. Curation papers validate against operator skill or
+\textbf{Skill and success are different targets.} \rinse{}'s SAL gives
+different verdicts depending on the label. Under an uncontrolled skill
+label it looks nearly perfect; under a length-controlled skill label it is
+marginal; under a success label on fixed-length data it is weak on both
+machine-generated tasks. Curation papers validate against operator skill or
 smoothness-adjacent labels on success-only pools, then are deployed, in
-practice, to remove \emph{failures} from mixed pools. Our results say those
-are not the same job, and the metrics do not transfer between them.
+practice, to remove \emph{failures} from mixed pools. Those are not the same
+job, and SAL as \rinse{} defines it does not transfer between them. Standard
+SPARC is less length-dependent, much stronger against success, and against
+skill better than \rinse{}'s SAL once duration is controlled on Square
+(though not on Can), so the failure against success is a statement about a
+formula and not about spectral smoothness.
 
-\textbf{The crude baseline wins under controls.} \rinse{} motivates SAL and
-TED as principled improvements over na\"ive statistics such as jerk. Under
-every length control we applied, that ordering reverses. We do not claim
-jerk is a good curation metric in general, and the Bedi
-testbeds~\citep{bedi-audit} show smoothness-family scorers failing badly on
-structural defects; we claim only that on real robomimic data the published
-sophistication does not survive the controls that the audit literature has
-shown to be necessary.
+\textbf{What we no longer claim about jerk.} An earlier version of this
+paper said that the crude baseline wins under every length control. Against
+task success that remains true on both machine-generated tasks, pooled and
+within checkpoints: jerk outranks both of \rinse{}'s metrics. Against
+operator skill it does not hold in the form we stated. Jerk's high AUROC in
+the duration-matched bands is one operator pair, and across operator pairs
+it is more often below chance than above (Section~\ref{sec:operators}). Nor do
+we claim jerk is a good curation metric: its can/mg pool had the most
+successes of any metric we trained on and produced no gain under behavior
+cloning.
 
-\textbf{Why TED inverts: failure stays inside the envelope.} TED's design premise is that
+\textbf{Why TED is below chance on can/mg.} The quantitative account is the
+checkpoint one of Section~\ref{sec:mg}: TED rates the rollouts of an early,
+never-successful checkpoint as the smoothest in the pool, and within a
+checkpoint it does not separate outcomes. The qualitative account that
+follows is consistent with that and should be read with it in mind. The two
+demonstrations in Figure~\ref{fig:qual} come from different checkpoints (the
+failure from the third, the success from the seventh, whose success rate
+is 1\%), so the figure
+illustrates a contrast between policies at different stages of training,
+which is where the inversion lives, and not between two outcomes of one
+policy. TED's design premise is that
 partitioning at gripper-contact boundaries isolates task-relevant
 abruptness, and a plausible hypothesis going in was that this would let TED
 catch failures, since canonical structural failures are contact-boundary
-events. The data supports a different and simpler mechanism.
+events. The data are consistent with a different and simpler mechanism.
 Figure~\ref{fig:qual} contrasts a successful and a failed can/mg
 demonstration. Both contain one high-deviation segment, but they differ in
 when it occurs and how much of the episode it spans. In the success, the
@@ -805,22 +1032,29 @@ episode raises the score substantially while a short approach transient is
 diluted by the smooth remainder. TED therefore rates the failure as the
 cleaner trajectory (0.042 vs.\ 0.144).
 
-On this task, in other words, successful manipulation \emph{requires}
-sustained high-deviation motion through the contact phase, while failure
-manifests as low-amplitude hovering that the envelope follows closely. A
+On can/mg, in other words, the later policies that sometimes succeed
+produce sustained high-deviation motion through the contact phase, while
+early policies produce low-amplitude hovering that the envelope follows
+closely. On lift/mg the same metric is above chance
+(Section~\ref{sec:lift}), so this is a description of one split. A
 metric that rewards agreement with a smoothed envelope is measuring
-commitment with the sign flipped. Jerk sees the same two behaviors from
-the other side, which is why it is the one metric that retains signal in
-Section~\ref{sec:detection}. A committed motion is large but smooth: it
-carries the end effector far from the envelope, but its accelerations
-change gradually, so its envelope deviation is high and its jerk is low.
-Hovering is small but jittery: the end effector holds position through
-repeated gripper cycles, and what little it moves, it moves abruptly, so
-its envelope deviation is low and its jerk is high. The two demonstrations in Figure~\ref{fig:qual} show
-both readings at once, with the success at a mean jerk of 71.6 against
-124.1 for the failure while TED rates the failure cleaner, and across the
-whole split successful demonstrations have lower mean jerk than failed
-ones (85.7 vs.\ 112.8), which is the direction the 0.706 AUROC reports.
+commitment with the sign flipped. Within a policy that sometimes succeeds,
+jerk sees the same two behaviors from the other side, which may be why it
+and standard SPARC retain signal within checkpoints. A committed motion is
+large but smooth: it carries the end effector far from the envelope, but
+its accelerations change gradually, so its envelope deviation is high and
+its jerk is low. The failed hovering of such a policy is small but jittery:
+the end effector holds position through repeated gripper cycles, and what
+little it moves, it moves abruptly, so its envelope deviation is low and
+its jerk is high. This contrast is within-policy. Across checkpoints it does
+not hold in general: the fourth and fifth checkpoints never succeed and are
+the lowest-jerk rollouts in the split (Section~\ref{sec:training}). The two
+demonstrations in Figure~\ref{fig:qual} show both readings at once, with
+the success at a mean jerk of 71.6 against 124.1 for the failure while TED
+rates the failure cleaner. Across the whole split successful demonstrations
+have lower mean jerk than failed ones (85.7 vs.\ 112.8), the direction the
+0.706 AUROC reports, and within the last four checkpoints the gap is 85.6
+vs.\ 125.5.
 We stress that these panels illustrate a mechanism rather than
 establish it; the quantitative claims are the AUROCs of 0.376 and 0.706 in
 Figure~\ref{fig:main}b, and the per-demonstration TED scores we inspected
@@ -830,10 +1064,18 @@ consistent with but not evidence for those numbers.
 \section{Limitations}
 \label{sec:limitations}
 
-Our detection results cover two robomimic tasks (Can and Square) but our
-success-label and downstream-training results cover only Can, because Can is
-the only robomimic task shipping failure-containing splits; extending the
-success-label analysis requires datasets with real, labeled teleoperation
+Our skill-label results cover two robomimic tasks (Can and Square) with two
+operators per tier, which is too few to separate a metric's relation to
+skill from its relation to individual operators; the jerk result of
+Section~\ref{sec:operators} is the case where that mattered, and the
+duration-matched bands reduce to a single operator pair on both tasks. Our
+success-label results cover the two machine-generated splits robomimic
+ships (Can and Lift), in which outcome is confounded with policy checkpoint;
+Lift has successes in only two of its five checkpoints. Downstream training
+covers can/mg only, and only the four metrics of Table~\ref{tab:training}:
+we have not trained on a SPARC-curated pool, on Lift, or on the full
+3900-demonstration pool. Extending the
+success-label analysis beyond policy rollouts requires datasets with real, labeled teleoperation
 failures, such as \mbox{REASSEMBLE}~\citep{reassemble} or
 DROID~\citep{droid}. Our downstream results cover two policy configurations (GMM behavior
 cloning and a diffusion policy); the detection results are policy-free. The
@@ -846,32 +1088,23 @@ seeds rather than ten, resolving differences of roughly 0.054; TED's
 diffusion deficit ($-0.028$, CI $[-0.052, +0.000]$) falls below that, which
 is why we report its ordering as replicating and its harm as established
 under BC only. And absolute success rates remain lower under diffusion in
-every condition at a matched epoch and evaluation budget, from $1.6\times$
-on the oracle (0.544 vs.\ 0.892) to $3.1\times$ on the two baselines. We
-previously attributed that gap to under-convergence in a reduced-compute
-pilot; restoring the full epoch and rollout budget did not close it, and the
-training curves rule that explanation out directly, since the diffusion runs
-improve by only $+0.017$ between the first and second halves of training
-against a $0.044$ noise floor while the BC runs improve by $+0.092$. The gap
-is therefore not a matter of training duration; action parameterization
-(Section~\ref{sec:crossarch}) is a candidate we have not yet tested. Because the two grids sit at different points on the
-success scale, we restrict cross-architecture claims to ordering and sign
-rather than magnitude. Multiple-comparison correction is applied within each
-architecture, as each grid is a separate family; pooling all twelve tests
-($\alpha = 0.00417$) leaves every reported conclusion unchanged.
+every condition (Section~\ref{sec:crossarch}); the training curves rule out
+under-training as the cause, and action parameterization is a candidate we
+have not yet tested, so we restrict cross-architecture claims to ordering
+and sign rather than magnitude.
 Our TED is a reimplementation from the \rinse{} appendix, not the authors'
-released code; as a sanity check it broadly agrees with SAL's ranking on the
-clean proficient-human data, but a discrepancy with the reference
-implementation cannot be excluded, and we will replace it if code becomes
-available. The tightest duration band retains only 7 negatives, and its
-role in our argument is corroborative, not primary. The BC downstream
+released code; a discrepancy with the reference implementation cannot be
+excluded, and we will replace it if code becomes available. Can's tightest
+duration band retains only 7 negatives, all from one operator (Square's
+retains 13, 11 from one operator), and its role in our argument is
+corroborative, not primary. The BC downstream
 conditions use 10 seeds; at this power, differences smaller than roughly
 0.05 in mean success rate are not resolvable, which is why we report SAL and
 jerk as indistinguishable from the baselines rather than as harmful under
 that architecture. The oracle training
 condition has a smaller pool (716 vs.\ 1950) and is reported as a ceiling,
 not a matched comparison. Finally, our success-label experiments use
-machine-generated failures (can/mg); failure modes of human teleoperators
+machine-generated failures (can/mg, lift/mg); failure modes of human teleoperators
 may present differently. We report can/paired only as a secondary setting
 because its matched-pair construction, in which each success/failure pair
 shares a near-identical trajectory prefix and diverges only in the final
@@ -883,27 +1116,31 @@ curation metrics are deployed on.
 
 \section{Conclusion}
 
-Published trajectory-smoothness curation metrics, evaluated exactly where
-their authors did not, on real operator labels under duration controls and
-on fixed-length data against task success, rank episode duration more than
-demonstration quality. Once duration is controlled, the crude jerk baseline
-they were designed to supersede outperforms them, and the contact-aware
-metric inverts, and the same crossover reproduces on a second task without
-retuning. Training on the metrics' own curated subsets shows the practical
-stakes are real but narrower than a five-seed pass suggested: curating by
-TED costs roughly a third of downstream success against random selection of
-the same size, a result robust to correction for multiple comparisons, while
-the other metrics are directionally below the baselines without being
-distinguishable from them. An oracle reaches 0.892 on the same pool, so the
-signal these metrics fail to find is unambiguously present in the data.
-In the diffusion configuration we tested, TED still ranks worst under both
-architectures, consistent with a metric-level rather than architecture-level
-reading of that result, though at five seeds its deficit there is not
-resolvable and the harm remains established under behavior cloning only. The
-same replication reverses jerk from inert to better than both baselines. A
-curation metric's value, and its sign, depend on the policy configuration it
-is measured against, which is not currently part of how such results are
-reported.
+Evaluated where their authors did not evaluate them, on real operator
+labels under duration controls and on fixed-length data against task
+success, \rinse{}'s two metrics do not behave as curation scores should.
+Its SAL ranks episode duration: it matches the length baseline overall and
+within every operator pair, on two tasks, and is weak against task success
+on both fixed-length splits. That is largely a property of the published
+formula, since the standard SPARC definition is less length-dependent and
+separates successes from failures well on both splits. Its TED is below
+chance against success on can/mg, where it favors the rollouts of an early
+checkpoint, at chance within checkpoints, and above chance on lift/mg.
+Curating can/mg by TED costs a third of downstream behavior-cloning success
+against random selection of the same size, a result robust to correction
+for multiple comparisons and matched by the composition of the pool TED
+selects; the other three metrics we trained on are not distinguishable from
+random subsets. An oracle reaches 0.892 on the same pool.
+
+Two things we reported earlier are weaker than we said. Raw jerk's advantage
+under duration matching is one pair of operators and does not generalize
+across the operators in the data. And the diffusion-policy replication, in
+which TED still ranks worst without a resolvable deficit and jerk moves
+above both baselines, rests on five seeds at low success rates in one action
+parameterization, and is provisional. What remains open is why a jerk-curated
+pool with two-thirds more successes than a random one trains no better under
+behavior cloning, and whether a SPARC-curated pool, which would contain
+nearly all the successes, does.
 
 \bibliographystyle{plainnat}
 \begin{thebibliography}{9}
@@ -912,6 +1149,12 @@ S.~Kulkarni, R.~Dhar, Y.~Cui.
 \newblock Learning from the Best: Smoothness-Driven Metrics for Data Quality
 in Imitation Learning.
 \newblock arXiv:2604.23000, 2026.
+
+\bibitem[Balasubramanian et al.(2015)]{sparc}
+S.~Balasubramanian, A.~Melendez-Calderon, A.~Roby-Brami, E.~Burdet.
+\newblock On the Analysis of Movement Smoothness.
+\newblock Journal of NeuroEngineering and Rehabilitation, 12:112, 2015.
+\newblock doi:10.1186/s12984-015-0090-9.
 
 \bibitem[Bedi(2026a)]{bedi-audit}
 A.~Bedi.

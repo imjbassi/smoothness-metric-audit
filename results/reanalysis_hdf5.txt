@@ -1,0 +1,111 @@
+
+========================================================================
+A. can/mh operator masks vs index-block labels
+========================================================================
+mask keys: {'20_percent': 60, '20_percent_train': 54, '20_percent_valid': 6, '50_percent': 144, '50_percent_train': 132, '50_percent_valid': 12, 'better': 100, 'better_operator_1': 50, 'better_operator_1_train': 45, 'better_operator_1_valid': 5, 'better_operator_2': 50, 'better_operator_2_train': 45, 'better_operator_2_valid': 5, 'better_train': 90, 'better_valid': 10, 'okay': 100, 'okay_better': 200, 'okay_better_train': 180, 'okay_better_valid': 20, 'okay_operator_1': 50, 'okay_operator_1_train': 45, 'okay_operator_1_valid': 5, 'okay_operator_2': 50, 'okay_operator_2_train': 45, 'okay_operator_2_valid': 5, 'okay_train': 90, 'okay_valid': 10, 'train': 270, 'valid': 30, 'worse': 100, 'worse_better': 200, 'worse_better_train': 180, 'worse_better_valid': 20, 'worse_okay': 200, 'worse_okay_train': 180, 'worse_okay_valid': 20, 'worse_operator_1': 50, 'worse_operator_1_train': 45, 'worse_operator_1_valid': 5, 'worse_operator_2': 50, 'worse_operator_2_train': 45, 'worse_operator_2_valid': 5, 'worse_train': 90, 'worse_valid': 10}
+op_mask  better_operator_1_train  ...  worse_operator_2_valid
+block                             ...                        
+0                             45  ...                       0
+1                              0  ...                       5
+2                              0  ...                       0
+3                              0  ...                       0
+4                              0  ...                       0
+5                              0  ...                       0
+
+[6 rows x 12 columns]
+tier by index block:
+skill   0   1   2
+block            
+0       0   0  50
+1      50   0   0
+2       0  50   0
+3       0   0  50
+4      50   0   0
+5       0  50   0
+v15 vs v141: T identical for 100.0% of demos; max |SAL diff| 1.89e-10; max |jerk diff| 1.68e-12
+
+========================================================================
+B. can/mh SPARC with the standard frequency cap vs our SAL
+========================================================================
+corr with T (all 300): {'sal': 0.969, 'sparc': 0.795, 'sparc20': 0.848, 'jerk': -0.166}  Spearman: {'sal': 0.916, 'sparc': 0.596, 'sparc20': 0.71, 'jerk': -0.2}
+T in [0,99999] n=200: sal 0.952 [0.921,0.975]  sparc 0.764 [0.696,0.825]  sparc20 0.837 [0.783,0.890]  jerk 0.584 [0.494,0.670]  T 0.957 [0.928,0.980]
+T in [120,220] n=98: sal 0.793 [0.683,0.886]  sparc 0.541 [0.415,0.666]  sparc20 0.636 [0.519,0.748]  jerk 0.862 [0.788,0.927]  T 0.801 [0.692,0.902]
+T in [130,190] n=74: sal 0.759 [0.619,0.880]  sparc 0.568 [0.417,0.713]  sparc20 0.641 [0.491,0.785]  jerk 0.906 [0.830,0.964]  T 0.753 [0.602,0.888]
+T in [140,175] n=40: sal 0.628 [0.344,0.863]  sparc 0.506 [0.270,0.762]  sparc20 0.524 [0.276,0.795]  jerk 0.896 [0.781,0.980]  T 0.485 [0.219,0.755]
+operator-pair AUROC, full set (better block vs worse block):
+  block0 vs block1: sal 1.000  sparc 0.715  jerk 0.278  T 1.000
+  block0 vs block4: sal 0.985  sparc 0.786  jerk 0.639  T 0.985
+  block3 vs block1: sal 0.976  sparc 0.738  jerk 0.454  T 0.998
+  block3 vs block4: sal 0.844  sparc 0.816  jerk 0.966  T 0.845
+
+========================================================================
+A. square/mh operator masks vs index-block labels
+========================================================================
+mask keys: {'20_percent': 60, '20_percent_train': 54, '20_percent_valid': 6, '50_percent': 144, '50_percent_train': 132, '50_percent_valid': 12, 'better': 100, 'better_operator_1': 50, 'better_operator_1_train': 45, 'better_operator_1_valid': 5, 'better_operator_2': 50, 'better_operator_2_train': 45, 'better_operator_2_valid': 5, 'better_train': 90, 'better_valid': 10, 'okay': 100, 'okay_better': 200, 'okay_better_train': 180, 'okay_better_valid': 20, 'okay_operator_1': 50, 'okay_operator_1_train': 45, 'okay_operator_1_valid': 5, 'okay_operator_2': 50, 'okay_operator_2_train': 45, 'okay_operator_2_valid': 5, 'okay_train': 90, 'okay_valid': 10, 'train': 270, 'valid': 30, 'worse': 100, 'worse_better': 200, 'worse_better_train': 180, 'worse_better_valid': 20, 'worse_okay': 200, 'worse_okay_train': 180, 'worse_okay_valid': 20, 'worse_operator_1': 50, 'worse_operator_1_train': 45, 'worse_operator_1_valid': 5, 'worse_operator_2': 50, 'worse_operator_2_train': 45, 'worse_operator_2_valid': 5, 'worse_train': 90, 'worse_valid': 10}
+op_mask  better_operator_1_train  ...  worse_operator_2_valid
+block                             ...                        
+0                             45  ...                       0
+1                              0  ...                       5
+2                              0  ...                       0
+3                              0  ...                       0
+4                              0  ...                       0
+5                              0  ...                       0
+
+[6 rows x 12 columns]
+tier by index block:
+skill   0   1   2
+block            
+0       0   0  50
+1      50   0   0
+2       0  50   0
+3       0   0  50
+4      50   0   0
+5       0  50   0
+v15 vs v141: T identical for 100.0% of demos; max |SAL diff| 9.09e-13; max |jerk diff| 1.78e-15
+
+========================================================================
+B. square/mh SPARC with the standard frequency cap vs our SAL
+========================================================================
+corr with T (all 300): {'sal': 0.957, 'sparc': 0.721, 'sparc20': 0.803, 'jerk': -0.259}  Spearman: {'sal': 0.911, 'sparc': 0.666, 'sparc20': 0.775, 'jerk': -0.323}
+T in [0,99999] n=200: sal 0.898 [0.853,0.936]  sparc 0.806 [0.747,0.864]  sparc20 0.837 [0.785,0.891]  jerk 0.431 [0.355,0.511]  T 0.936 [0.901,0.964]
+T in [150,300] n=111: sal 0.759 [0.650,0.850]  sparc 0.688 [0.583,0.787]  sparc20 0.676 [0.566,0.778]  jerk 0.570 [0.457,0.680]  T 0.824 [0.738,0.898]
+T in [180,260] n=55: sal 0.529 [0.349,0.702]  sparc 0.670 [0.513,0.808]  sparc20 0.592 [0.428,0.751]  jerk 0.782 [0.620,0.920]  T 0.613 [0.463,0.756]
+T in [200,240] n=30: sal 0.480 [0.258,0.704]  sparc 0.756 [0.569,0.917]  sparc20 0.670 [0.453,0.869]  jerk 0.896 [0.722,1.000]  T 0.407 [0.194,0.640]
+operator-pair AUROC, full set (better block vs worse block):
+  block0 vs block1: sal 0.993  sparc 0.833  jerk 0.012  T 1.000
+  block0 vs block4: sal 0.946  sparc 0.809  jerk 0.279  T 0.992
+  block3 vs block1: sal 0.901  sparc 0.804  jerk 0.440  T 0.952
+  block3 vs block4: sal 0.751  sparc 0.781  jerk 0.993  T 0.801
+
+========================================================================
+C. lift/mg: does it contain failures?
+========================================================================
+mask keys: None
+1500 rollouts; T min/max 150/150; final-step success 243 (16.2%); any reward 316 (21.1%)
+      success  any_reward     jerk     sal  sparc    ted  path_len
+ckpt                                                              
+0       0.000       0.000  168.478  53.927  5.079  0.048     2.141
+1       0.000       0.020  108.326  50.031  5.930  0.050     1.398
+2       0.000       0.000   97.729  46.101  5.909  0.073     1.040
+3       0.173       0.253  108.601  45.922  5.593  0.077     1.356
+4       0.637       0.780   90.337  47.569  4.205  0.041     1.541
+
+========================================================================
+D. lift/mg AUROC vs success (iid CI; within-checkpoint)
+========================================================================
+  jerk     0.870 [0.843, 0.894]   c3:0.806 c4:0.862
+  sal      0.643 [0.607, 0.679]   c3:0.537 c4:0.691
+  sparc    0.891 [0.861, 0.919]   c3:0.739 c4:0.863
+  path_len 0.431 [0.401, 0.462]   c3:0.245 c4:0.597
+  ted      0.669 [0.639, 0.700]   c3:0.612 c4:0.740
+can {'better_operator_1': [0], 'better_operator_2': [3], 'okay_operator_1': [5], 'okay_operator_2': [2], 'worse_operator_1': [4], 'worse_operator_2': [1]}
+square {'better_operator_1': [0], 'better_operator_2': [3], 'okay_operator_1': [5], 'okay_operator_2': [2], 'worse_operator_1': [4], 'worse_operator_2': [1]}
+
+========================================================================
+E. can/mg: SPARC vs success, and index order = checkpoint order check
+========================================================================
+mask keys: None
+success label identical to v141 for 100.0%; max |SAL diff| 3.59e-11
+  sal    AUROC 0.454 [0.432, 0.475]
+  sparc  AUROC 0.871 [0.859, 0.883]
+lift any-reward label: {'jerk': 0.811, 'sal': 0.609, 'sparc': 0.847, 'ted': 0.639, 'path_len': 0.407}

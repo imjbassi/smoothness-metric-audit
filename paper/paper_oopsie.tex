@@ -45,12 +45,7 @@ subset (10 seeds per condition), curating by TED costs roughly a third of
 downstream success relative to random selection of the same size (0.240
 vs.\ 0.360, $p{=}0.0001$, surviving Bonferroni correction); path length is
 directionally harmful with weaker support, while SAL and jerk are not
-statistically distinguishable from not curating at all. Replicating the grid
-under a diffusion policy qualifies that headline in both directions: TED is
-still the worst condition, but at five seeds its deficit is no longer
-resolvable, and jerk moves from inert to significantly better than both
-baselines, so a smoothness-adjacent statistic we had written off does have
-curation value in a diffusion-policy configuration we had not tested.
+statistically distinguishable from random subsets of the same size. A five-seed diffusion-policy replication, which we treat as provisional, again ranks TED worst, though its deficit there is not resolvable.
 Inspecting individual trajectories shows why: on this task successful
 manipulation requires sustained high-deviation motion through the contact
 phase, while failure manifests as smooth low-amplitude hovering, so a
@@ -79,7 +74,7 @@ show, for one widely-motivated family of scores, that the answer is no, and
 that the failure to recognize failure is not a minor miscalibration but a
 sign flip that, for the contact-aware metric under behavior cloning, is
 large enough to make training on the curated subset worse than training on
-the uncurated pool.
+a random subset of the same size.
 
 Behavior cloning inherits the quality of its demonstrations, and a growing
 literature proposes to score and filter demonstrations automatically.
@@ -116,7 +111,7 @@ success-filtered setting.
 \item \textbf{Real labels, not injected defects.} robomimic
 can/mh~\citep{robomimic} carries \emph{human operator skill tiers}
 (better/okay/worse) assigned to real teleoperators, and can/mg carries real
-task-success outcomes of a scripted-policy data-generation process. No defect
+task-success outcomes of rollouts from checkpoints of a SAC training run. No defect
 is synthetic.
 \item \textbf{A length-free benchmark by construction.} In can/mg every
 episode is exactly 150 steps. The episode-length confound documented
@@ -185,20 +180,22 @@ caveat and the sanity check we ran.
 
 \textbf{Datasets.} All data is public robomimic~\citep{robomimic} low-dim.
 \emph{can/mh}: 300 successful demonstrations from six human operators
-with released skill tiers (better/okay/worse, 100 each); episode lengths
-range 98--1050 steps. \emph{can/mg}: 3900 machine-generated demonstrations,
-18.4\% successful, every episode exactly 150 steps. \emph{can/paired}: 200
+with released skill tiers (better/okay/worse, 100 each, two operators per tier); episode lengths
+range 98--1050 steps. All skill AUROCs compare better against worse; the
+okay tier is excluded. \emph{can/mg}: 3900 machine-generated demonstrations
+(300 rollouts from each of 13 checkpoints of a SAC training run), 18.4\%
+successful, every episode exactly 150 steps. \emph{can/paired}: 200
 demonstrations in matched success/failure pairs (50\% successful), lengths
 55--147; we report it as a secondary setting because its matched-pair
 construction makes it adversarially hard for trajectory-level scores.
 \emph{square/mh}: 300 successful demonstrations with the same skill-tier
 structure (100 each), episode lengths 123--1051, used in
 Section~\ref{sec:square} to test whether the length confound is
-task-specific. We note that Can is the only robomimic task with
-failure-containing splits (\texttt{mg} and \texttt{paired}); Square,
-Transport, and Tool Hang ship only proficient-human and multi-human data,
-all of it successful. Our success-label experiments are therefore confined
-to Can by benchmark availability, not by choice.
+task-specific. We note that robomimic ships machine-generated (\texttt{mg}) splits for Can
+and Lift only, and a \texttt{paired} split for Can only; Square, Transport,
+and Tool Hang ship only proficient-human and multi-human data, all of it
+successful. Our success-label experiments use Can; on Lift's \texttt{mg} split, analyzed for\r
+detection only, SAL is weak (AUROC 0.643) and TED above chance (0.669).
 
 \textbf{Statistics.} All AUROCs are reported with 95\% bootstrap confidence
 intervals (2000 resamples). Downstream comparisons use difference-of-means
@@ -248,8 +245,8 @@ the tightest band ($T \in [140,175]$, $n{=}40$), where length itself is at
 chance (0.485 [0.227, 0.740]), SAL is 0.628 [0.378, 0.856], a CI that
 includes chance, while raw jerk is 0.896 [0.783, 0.980]. Across the four
 bands the two metrics \emph{cross}: as the confound is removed, the crude
-metric strengthens monotonically (0.584, 0.862, 0.906, 0.896) and the
-sophisticated one weakens monotonically (0.952, 0.793, 0.759, 0.628).
+metric strengthens and then levels off (0.584, 0.862, 0.906, 0.896) and the
+sophisticated one weakens at every step (0.952, 0.793, 0.759, 0.628).
 
 TED never clears chance in any band (0.558 full-sample, upper CI 0.636)
 and inverts to 0.359 in the tightest band. TED does \emph{not}
@@ -273,7 +270,7 @@ Table~\ref{tab:bands}.
 & full ($n{=}200$) & $T \in [120,220]$ ($n{=}98$) & $T \in [130,190]$ ($n{=}74$) & $T \in [140,175]$ ($n{=}40$) \\
 \midrule
 SAL       & 0.952 [.922,.975] & 0.793 [.690,.881] & 0.759 [.628,.875] & 0.628 [.378,.856] \\
-SAL$/T$   & 0.582 [.497,.662] & 0.600 [.479,.715] & 0.603 [.446,.755] & 0.658 [.342,.923] \\
+SAL$/(T{-}1)$ & 0.582 [.497,.662] & 0.600 [.479,.715] & 0.603 [.446,.755] & 0.658 [.342,.923] \\
 TED       & 0.558 [.480,.636] & 0.653 [.522,.776] & 0.631 [.468,.779] & 0.359 [.147,.583] \\
 jerk      & 0.584 [.505,.665] & 0.862 [.783,.928] & 0.906 [.832,.965] & 0.896 [.783,.980] \\
 path len. & 0.783 [.718,.842] & 0.590 [.449,.730] & 0.624 [.461,.781] & 0.429 [.215,.645] \\
@@ -295,8 +292,12 @@ proxies rather than duration-free measures of smoothness.}
 
 The can/mg split fixes every episode at 150 steps, so no metric can exploit
 duration. Against the success label (716 of 3900 successful), jerk achieves
-0.706, SAL 0.454, path length 0.421, and TED 0.376
-(Figure~\ref{fig:main}b). The length baseline is exactly 0.500, as it must
+0.706 [0.689, 0.724], SAL 0.454 [0.432, 0.477], path length 0.421 [0.402,
+0.440], and TED 0.376 [0.355, 0.396] (Figure~\ref{fig:main}b). Those
+intervals resample rollouts. The split is 13 checkpoints of 300 rollouts
+whose success rate rises from 0\% to 68\%, so rollouts are not independent;
+resampling whole checkpoints gives jerk [0.573, 0.832], SAL [0.392, 0.527],
+path length [0.284, 0.563], and TED [0.300, 0.447]. The length baseline is exactly 0.500, as it must
 be. Per-timestep normalization leaves every AUROC unchanged, as expected
 under a constant divisor, which we report as a consistency check.
 
@@ -328,10 +329,15 @@ about~\citep{bedi-policy}; the trained policy is. We therefore filter can/mg
 by each metric at a 50\% keep fraction and train a GMM behavior-cloning
 policy (MLP $1024{\times}1024$, 5 modes, batch 100, 600 epochs of 500
 gradient steps, learning rate $10^{-4}$) on each curated subset, with 50
-evaluation rollouts (horizon 400) every 150 epochs and the best checkpoint
-reported per seed. Conditions: TED, SAL, jerk, path length, plus three
+evaluation rollouts (horizon 400) at eight points per run (epochs 100, 150,
+200, 300, 400, 450, 500, and 600: every 150 epochs plus each 100-epoch
+checkpoint save) and the best of the eight reported per seed. Conditions: TED, SAL, jerk, path length, plus three
 references: an \emph{oracle} keeping only successful demonstrations, a
-\emph{random} 50\% subset, and an uncurated size-matched control. Ten seeds
+\emph{random} 50\% subset, and a second, independent random 50\% subset that
+our tables label ``no curation''. That label is a misnomer kept for
+continuity with the released results: it is a size-matched random draw
+(sharing 979 demonstrations with the first), not the full
+3900-demonstration pool, which we did not train on. Ten seeds
 per condition. All filtered pools contain 1950 demonstrations except the
 oracle (716, the number of successes that exist); we therefore treat the
 oracle as a ceiling reference rather than a matched condition.
@@ -345,7 +351,7 @@ condition & pool size & best success rate (mean $\pm$ std) & 95\% CI \\
 \midrule
 oracle (successes only) & 716 & 0.892 $\pm$ 0.048 & [0.866, 0.922] \\
 \midrule
-no curation             & 1950 & 0.380 $\pm$ 0.063 & [0.344, 0.420] \\
+no curation (2nd random 50\%) & 1950 & 0.380 $\pm$ 0.063 & [0.344, 0.420] \\
 random 50\%             & 1950 & 0.360 $\pm$ 0.061 & [0.326, 0.398] \\
 \midrule
 SAL                     & 1950 & 0.332 $\pm$ 0.061 & [0.298, 0.370] \\
@@ -381,7 +387,7 @@ SAL         & $-0.028$ [$-0.080$, $+0.024$] & 0.32 & $-0.048$ [$-0.098$, $+0.002
 condition and the two baselines, with 95\% bootstrap CIs on the difference
 (20{,}000 resamples) and Welch two-sample $p$-values. Bold marks the
 comparisons surviving Bonferroni correction across all eight tests
-($\alpha = 0.05/8 = 0.006$). Only TED clears that bar. For reference,
+($\alpha = 0.05/8 = 0.006$). Only TED clears that bar (Bonferroni-adjusted $p = 0.001$ and $0.0002$). For reference,
 random and no-curation are themselves indistinguishable
 ($\Delta = -0.020$, CI $[-0.072, +0.032]$).}
 \label{tab:tests}
@@ -391,7 +397,7 @@ Table~\ref{tab:training} answers the question Section~\ref{sec:detection}
 could only pose, and Table~\ref{tab:tests} reports the comparisons that
 matter. Two results are unambiguous. Curating by TED costs roughly a third
 of downstream success relative to random selection of the same size
-($-0.120$, $p = 0.0001$) and relative to not curating at all ($-0.140$,
+($-0.120$, $p = 0.0001$) and relative to the second random draw ($-0.140$,
 $p < 0.0001$); both survive Bonferroni correction across the eight
 comparisons we report. Path length is directionally harmful with weaker
 support ($p = 0.037$ and $p = 0.0071$), clearing conventional significance
@@ -411,14 +417,14 @@ What the grid does establish irrespective of any single comparison is that
 under this policy class none of these metrics recovers usable signal that is
 demonstrably present.
 An oracle keeping only true successes reaches 0.892 [0.866, 0.922], roughly
-2.5$\times$ the best metric-curated condition, so the pool contains ample
+2.7$\times$ the best metric-curated condition, so the pool contains ample
 information about which demonstrations to keep; the trajectory statistics
-simply do not find it. Random subsampling and the uncurated control are
-themselves indistinguishable ($\Delta = -0.020$, CI spanning zero), which is
-the sanity check one wants: at a 50\% keep fraction on this data, discarding
-demonstrations at random costs nothing measurable, so any deficit a metric
-shows is attributable to \emph{which} demonstrations it discards rather than
-to the reduction in pool size. The downstream ordering tracks the detection
+simply do not find it. The two random draws are themselves indistinguishable
+($\Delta = -0.020$, CI spanning zero), which bounds the variation between
+equally sized random pools. Every non-oracle condition has 1950
+demonstrations, so a metric's deficit reflects \emph{which} demonstrations
+it keeps; the effect of halving the pool is untested, since no run used all
+3900. The downstream ordering tracks the detection
 ordering only imperfectly (Appendix~\ref{app:ordering}).
 
 \subsection{Running the replication our own limitations demanded}
@@ -572,8 +578,7 @@ for, the AUROC of 0.376 in Figure~\ref{fig:main}b.
 \label{sec:limitations}
 
 Our detection results cover two robomimic tasks (Can and Square) but our
-success-label and downstream-training results cover only Can, because Can is
-the only robomimic task shipping failure-containing splits; extending the
+success-label and downstream-training results cover only Can, the one machine-generated split we trained on (Lift's is analyzed for detection only); extending the
 success-label analysis requires datasets with real, labeled teleoperation
 failures, such as \mbox{REASSEMBLE}~\citep{reassemble} or DROID~\citep{droid}.
 Our downstream results now cover two policy classes (GMM behavior
@@ -739,7 +744,7 @@ cell.
 & full ($n{=}200$) & $T \in [150,300]$ ($n{=}111$) & $T \in [180,260]$ ($n{=}55$) & $T \in [200,240]$ ($n{=}30$) \\
 \midrule
 SAL       & 0.898 [.852,.936] & 0.759 [.658,.849] & 0.529 [.344,.702] & 0.480 [.250,.701] \\
-SAL$/T$   & 0.458 [.376,.536] & 0.485 [.372,.602] & 0.468 [.300,.653] & 0.520 [.280,.738] \\
+SAL$/(T{-}1)$ & 0.458 [.376,.536] & 0.485 [.372,.602] & 0.468 [.300,.653] & 0.520 [.280,.738] \\
 TED       & 0.663 [.584,.736] & 0.685 [.577,.788] & 0.599 [.427,.758] & 0.557 [.335,.785] \\
 jerk      & 0.431 [.349,.509] & 0.570 [.455,.687] & 0.782 [.618,.923] & 0.896 [.724,1.000] \\
 path len. & 0.931 [.893,.963] & 0.817 [.726,.895] & 0.796 [.654,.913] & 0.887 [.742,.991] \\
@@ -790,8 +795,7 @@ curves}
 \paragraph{Configuration.} The replication uses the same curated subsets:
 same keep fraction, same pools of 1950 demonstrations, same 600 epochs of 500
 gradient steps, same learning rate ($10^{-4}$), and the same evaluation
-protocol (50 rollouts, horizon 400, every 150 epochs, best checkpoint per
-seed). The policy is a conditional U-Net ($[256, 512, 1024]$ down-dims,
+protocol (50 rollouts, horizon 400, the same eight evaluation epochs, best of eight per seed). The policy is a conditional U-Net ($[256, 512, 1024]$ down-dims,
 kernel 5, 8 groups, 256-dimensional diffusion-step embedding) with EMA
 (power 0.75), an observation horizon of 2, action horizon of 8, and
 prediction horizon of 16, using a DDIM noise scheduler with 10 inference

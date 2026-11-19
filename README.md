@@ -14,8 +14,10 @@ robomimic operator labels and task-success labels.
 
 Detection AUROC. Above 0.500 = ranks quality correctly; below = inverted.
 
-Downstream: filtering can/mg by any tested metric produces a **worse**
-policy than not filtering at all (TED 0.216 vs. no curation 0.408, 5 seeds).
+Downstream (GMM-BC, 10 seeds): filtering can/mg by TED produces a **worse**
+policy than a random subset of the same size (0.240 vs. 0.360 and 0.380 for
+two independent random 50% draws). The second draw is called `nocuration` in
+the configs and CSVs; it is not the full 3900-demonstration pool.
 
 ## Layout
 
