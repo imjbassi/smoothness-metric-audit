@@ -18,17 +18,45 @@ RUN_RE = re.compile(r"^(?P<task>mh|mg)_(?P<cond>[a-z]+)_s(?P<seed>\d+)$")
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
+def log_evals(run_dir):
+    """Every rollout evaluation's success rate, from the run's log.txt.
+    (Model files are only saved when success improves, so they cannot
+    give the mean over evaluations.)"""
+    out = []
+    for p in glob.glob(os.path.join(run_dir, "*", "logs", "log.txt")):
+        txt = open(p, errors="ignore").read()
+        out += [float(x) for x in re.findall(r'"Success_Rate":\s*([0-9.]+)', txt)]
+    return out
+
+
 def load(root):
     rows = []
     for d in sorted(glob.glob(os.path.join(root, "*"))):
         m = RUN_RE.match(os.path.basename(d))
         if not m or not os.path.exists(os.path.join(d, "DONE")):
             continue
-        hits = parse_run(d)
+        hits, evals = parse_run(d), log_evals(d)
         if hits:
+            if evals and abs(max(evals) - max(hits)) > 1e-9:
+                print(f"WARNING {os.path.basename(d)}: log max {max(evals)} "
+                      f"!= model-file max {max(hits)}")
             rows.append({"task": m["task"], "condition": m["cond"],
                          "seed": int(m["seed"]), "best": max(hits),
-                         "mean8": float(np.mean(hits)), "n_evals": len(hits)})
+                         "mean8": float(np.mean(evals)) if evals else np.nan,
+                         "n_evals": len(evals)})
+    return pd.DataFrame(rows)
+
+
+def old_mean8(root):
+    """Mean over evaluations for the original BC grid, from its archived logs."""
+    rows = []
+    for d in glob.glob(os.path.join(root, "*")):
+        m = re.match(r"^([a-z_]+)_s(\d+)$", os.path.basename(d))
+        if m:
+            e = log_evals(d)
+            if e:
+                rows.append({"condition": m[1], "seed": int(m[2]),
+                             "mean8": float(np.mean(e)), "n_old": len(e)})
     return pd.DataFrame(rows)
 
 
@@ -68,7 +96,14 @@ def main(a):
 
     old = pd.read_csv(os.path.join(HERE, "train_results_all.csv"))
     old = old[old.arch == "GMM-BC"]
-    g = {f"old_{c}": old[old.condition == c].assign(mean8=np.nan)
+    if a.old_logs:
+        om = old_mean8(a.old_logs)
+        print(f"\noriginal-grid logs: {len(om)} runs, evaluations per run "
+              f"{om.n_old.min()}-{om.n_old.max()}")
+        old = old.merge(om, on=["condition", "seed"], how="left")
+    else:
+        old = old.assign(mean8=np.nan)
+    g = {f"old_{c}": old[old.condition == c]
          for c in ["random", "nocuration", "ted", "jerk", "sal"]}
     for c in ["sparc", "all", "random"]:
         g[f"new_{c}"] = df[(df.task == "mg") & (df.condition == c)]
@@ -79,8 +114,10 @@ def main(a):
     if len(g["new_random"]) > 1:
         seeds = g["new_random"].seed.values
         o = g["old_random"][g["old_random"].seed.isin(seeds)].best.values
-        print(f"\n  anchor: random seeds {sorted(seeds)} new {g['new_random'].best.mean():.3f}"
-              f" vs original {o.mean():.3f} (same seeds, same filter key)")
+        om = g["old_random"][g["old_random"].seed.isin(seeds)].mean8.values
+        print(f"\n  anchor: random seeds {sorted(int(s) for s in seeds)}: best "
+              f"{g['new_random'].best.mean():.3f} new vs {o.mean():.3f} original; "
+              f"mean-of-evals {g['new_random'].mean8.mean():.3f} vs {om.mean():.3f}")
     pairs = [(a_, b_) for a_, b_ in [("new_sparc", "old_random"),
                                     ("new_sparc", "old_nocuration"),
                                     ("new_all", "old_random"),
@@ -95,4 +132,6 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--root")
     p.add_argument("--from-csv")
+    p.add_argument("--old-logs", help="results_train/ of the original BC grid "
+                   "(from data/smoothness-logs-and-results.tar.gz), for mean-of-evals")
     main(p.parse_args())

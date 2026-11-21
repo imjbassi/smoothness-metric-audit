@@ -1,0 +1,40 @@
+55 finished runs
+
+can/mh, top 150 of 300 demonstrations (GMM-BC)
+  sal                    best 0.854 +/- 0.044   mean-of-evals 0.719   n=10
+  length                 best 0.878 +/- 0.036   mean-of-evals 0.745   n=10
+  random                 best 0.650 +/- 0.064   mean-of-evals 0.528   n=10
+
+  can/mh: Welch t-tests, Bonferroni alpha = 0.0167
+    sal              vs random           [best ] diff +0.204  p=0.0000 SURVIVES
+    sal              vs random           [mean8] diff +0.191  p=0.0000 SURVIVES
+    length           vs random           [best ] diff +0.228  p=0.0000 SURVIVES
+    length           vs random           [mean8] diff +0.217  p=0.0000 SURVIVES
+    sal              vs length           [best ] diff -0.024  p=0.2001 
+    sal              vs length           [mean8] diff -0.026  p=0.0578 
+
+original-grid logs: 70 runs, evaluations per run 8-8
+
+can/mg (GMM-BC); old_* = original grid, new_* = rebuilt environment
+  old_random             best 0.360 +/- 0.061   mean-of-evals 0.218   n=10
+  old_nocuration         best 0.380 +/- 0.063   mean-of-evals 0.240   n=10
+  old_ted                best 0.240 +/- 0.045   mean-of-evals 0.139   n=10
+  old_jerk               best 0.332 +/- 0.041   mean-of-evals 0.213   n=10
+  old_sal                best 0.332 +/- 0.061   mean-of-evals 0.205   n=10
+  new_sparc              best 0.480 +/- 0.056   mean-of-evals 0.313   n=10
+  new_all                best 0.406 +/- 0.035   mean-of-evals 0.265   n=10
+  new_random             best 0.392 +/- 0.056   mean-of-evals 0.221   n=5
+
+  anchor: random seeds [0, 1, 2, 3, 4]: best 0.392 new vs 0.392 original; mean-of-evals 0.221 vs 0.221
+
+  can/mg: Welch t-tests, Bonferroni alpha = 0.0100
+    new_sparc        vs old_random       [best ] diff +0.120  p=0.0002 SURVIVES
+    new_sparc        vs old_random       [mean8] diff +0.095  p=0.0000 SURVIVES
+    new_sparc        vs old_nocuration   [best ] diff +0.100  p=0.0014 SURVIVES
+    new_sparc        vs old_nocuration   [mean8] diff +0.073  p=0.0001 SURVIVES
+    new_all          vs old_random       [best ] diff +0.046  p=0.0578 
+    new_all          vs old_random       [mean8] diff +0.047  p=0.0000 SURVIVES
+    new_all          vs old_nocuration   [best ] diff +0.026  p=0.2713 
+    new_all          vs old_nocuration   [mean8] diff +0.025  p=0.0902 
+    new_sparc        vs new_all          [best ] diff +0.074  p=0.0029 SURVIVES
+    new_sparc        vs new_all          [mean8] diff +0.048  p=0.0003 SURVIVES

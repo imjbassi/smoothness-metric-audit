@@ -48,7 +48,11 @@ behavior-cloning policies on can/mg (10 seeds per condition), curating by
 TED costs a third of downstream success relative to a random subset of the
 same size (0.240 vs.\ 0.360, $p{=}0.0001$; $0.001$ after Bonferroni
 correction); the TED pool contains the fewest successes of any pool and the
-most rollouts from checkpoints that never succeed. One result from an
+most rollouts from checkpoints that never succeed. Against training on the
+full pool (0.406), every metric we trained on is worse after correction,
+TED by 0.166, while a pool curated by standard SPARC is better (0.480).
+On can/mh, curating by SAL beats a random half (0.854 vs.\ 0.650) but
+does no better than keeping the shortest episodes (0.878). One result from an
 earlier version of this paper does not hold as stated: jerk's high AUROC
 inside the duration-matched bands (0.896 on both tasks) comes from a single
 pair of operators, and across the four better/worse operator pairs it ranges
@@ -110,9 +114,10 @@ after them. The detection results, which involve no training, cover the two
 robomimic tasks with operator skill tiers that we analyzed (Can and Square,
 two operators per tier) and the two tasks with machine-generated splits (Can
 and Lift). The downstream-training results cover Can only, under two policy
-configurations: a GMM behavior-cloning policy, run for all four metrics at
-ten seeds, and a diffusion policy, run for two of the four metrics at five
-seeds. The downstream claims we make about TED are therefore established
+configurations: a GMM behavior-cloning policy, run on can/mg for all four
+metrics, standard SPARC, and the full pool, and on can/mh for SAL and
+episode length, all at ten seeds; and a diffusion policy, run on can/mg for
+two of the four metrics at five seeds. The downstream claims we make about TED are therefore established
 under behavior cloning only, and the diffusion results are provisional. We
 make no claim about other tasks, about human teleoperation failures, about
 smoothness metrics other than the ones named, or about other policy
@@ -131,7 +136,11 @@ where standard SPARC and jerk are strong; TED is below chance on Can and
 above it on Lift. Curating can/mg by TED produces a behavior-cloning policy
 substantially worse than random subsampling of the same size, a result that
 survives correction for multiple comparisons; the other metrics are not
-distinguishable from random subsets after correction. We withdraw one earlier claim, that
+distinguishable from random subsets after correction. Against training on
+the full pool, all four metrics produce worse policies, while a pool
+curated by standard SPARC produces a better one. On can/mh, where every
+demonstration succeeds, curating by \rinse{}'s SAL improves on random
+selection, but keeping the shortest episodes does at least as well. We withdraw one earlier claim, that
 raw jerk becomes the strongest skill detector once duration is controlled:
 that result is produced by a single pair of operators
 (Section~\ref{sec:operators}).
@@ -663,8 +672,9 @@ references: an \emph{oracle} keeping only successful demonstrations, a
 our tables label ``no curation''. That label is a misnomer kept for
 continuity with the released results: it is a size-matched random draw
 (sharing 979 demonstrations with the first), not the full
-3900-demonstration pool, which we did not train on. Ten seeds
-per condition. All filtered pools contain 1950 demonstrations except the
+3900-demonstration pool. Training on the full pool and on a pool curated by
+standard SPARC was added in this version (Section~\ref{sec:fullpool}). Ten
+seeds per condition. All filtered pools contain 1950 demonstrations except the
 oracle (716, the number of successes that exist); we therefore treat the
 oracle as a ceiling reference rather than a matched condition.
 
@@ -684,13 +694,18 @@ SAL                     & 1950 & 0.332 $\pm$ 0.061 & [0.298, 0.370] \\
 jerk                    & 1950 & 0.332 $\pm$ 0.041 & [0.306, 0.354] \\
 path length             & 1950 & 0.310 $\pm$ 0.030 & [0.292, 0.328] \\
 TED                     & 1950 & 0.240 $\pm$ 0.045 & [0.212, 0.266] \\
+\midrule
+full pool (all rollouts)  & 3900 & 0.406 $\pm$ 0.035 & [0.384, 0.426] \\
+standard SPARC          & 1950 & 0.480 $\pm$ 0.056 & [0.450, 0.514] \\
 \bottomrule
 \end{tabular}
 \caption{Downstream GMM-BC policy success on can/mg after filtering to a
 fixed 1950-demonstration pool by each metric, 10 seeds each. The oracle pool
 is smaller (716, the number of successes that exist) and is a ceiling
-reference, not a matched condition. Pairwise tests against the baselines are
-in Table~\ref{tab:tests}.}
+reference, not a matched condition. The bottom two rows were trained for
+this version in a rebuilt environment that reproduces the original runs
+exactly (Section~\ref{sec:fullpool}). Pairwise tests against the baselines
+are in Tables~\ref{tab:tests} and~\ref{tab:fullpool}.}
 \label{tab:training}
 \end{table}
 
@@ -747,10 +762,10 @@ An oracle keeping only true successes reaches 0.892 [0.866, 0.922], roughly
 information about which demonstrations to keep; these four trajectory
 statistics do not find it. The two random draws are themselves indistinguishable
 ($\Delta = -0.020$, CI spanning zero), which bounds the variation between
-equally sized random pools. Every non-oracle condition has 1950
-demonstrations, so a metric's deficit reflects \emph{which} demonstrations
-it keeps; the effect of halving the pool is untested, since no run used all
-3900.
+equally sized random pools. Every metric-curated condition has 1950
+demonstrations, so its deficit against a random draw reflects \emph{which}
+demonstrations it keeps; Section~\ref{sec:fullpool} compares the same
+conditions with the full pool.
 
 \begin{table}[t]
 \centering
@@ -767,13 +782,14 @@ jerk                    & 571 & 29.3\% & 41.6\% & 0.332 & 0.212 \\
 path length             & 305 & 15.6\% & 45.0\% & 0.310 & --- \\
 TED                     & 282 & 14.5\% & 59.4\% & 0.240 & 0.092 \\
 \midrule
-SPARC (not trained)     & 680 & 34.9\% & 37.4\% & --- & --- \\
+SPARC                   & 680 & 34.9\% & 37.4\% & 0.480 & --- \\
+full pool (3900)        & 716 & 18.4\% & 46.2\% & 0.406 & --- \\
 \bottomrule
 \end{tabular}
 \caption{Composition of each training pool on can/mg: number and share of
 successful demonstrations, share drawn from the six checkpoints that never
 succeed, and mean best policy success under each configuration. All pools
-have 1950 demonstrations except the oracle (716).}
+have 1950 demonstrations except the oracle (716) and the full pool (3900).}
 \label{tab:pools}
 \end{table}
 
@@ -796,9 +812,116 @@ successes is untested. Detection accuracy and pool composition are at best
 coarse predictors of curation value here, consistent with the decoupling
 reported by~\citep{bedi-policy} on a different testbed.
 
-A pool selected by standard SPARC would contain 680 of the 716 successes. We
-have not trained on it, and given the jerk result we do not assume that its
-success share predicts its outcome.
+\subsection{Against the full pool, and a pool curated by standard SPARC}
+\label{sec:fullpool}
+
+\rinse{}'s claim is that filtering matches or beats training on all the
+data. The grid above compares curated pools with random pools of the same
+size, which isolates \emph{which} demonstrations a metric keeps but not
+whether keeping them beats keeping everything. We therefore trained the
+same GMM-BC configuration on the full 3900-rollout pool and on the 1950
+rollouts that standard SPARC rates smoothest, ten seeds each. These runs
+were made later, in a rebuilt training environment (same robomimic,
+robosuite, and MuJoCo versions and the same v1.4.1 data files; a newer
+PyTorch minor version). To check that runs from the two environments can be
+compared, we re-ran the original random-50\% condition for five of its
+seeds: all five reproduce the original best success rate exactly (0.38,
+0.44, 0.34, 0.34, 0.46), as does the mean over the eight evaluations (0.221
+in both).
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{llccc}
+\toprule
+condition & vs. & $\Delta$ [95\% CI] & $p$ & adjusted $p$ \\
+\midrule
+TED         & full pool & $-0.166$ [$-0.200$, $-0.132$] & $<10^{-7}$ & $\mathbf{<10^{-6}}$ \\
+path length & full pool & $-0.096$ [$-0.122$, $-0.068$] & $<10^{-5}$ & $\mathbf{<10^{-4}}$ \\
+jerk        & full pool & $-0.074$ [$-0.106$, $-0.042$] & 0.0005 & $\mathbf{0.004}$ \\
+SAL         & full pool & $-0.074$ [$-0.112$, $-0.032$] & 0.0047 & $\mathbf{0.042}$ \\
+\midrule
+SPARC       & random 50\% & $+0.120$ [$+0.072$, $+0.168$] & 0.0002 & $\mathbf{0.002}$ \\
+SPARC       & no curation & $+0.100$ [$+0.052$, $+0.150$] & 0.0014 & $\mathbf{0.013}$ \\
+SPARC       & full pool & $+0.074$ [$+0.038$, $+0.114$] & 0.0029 & $\mathbf{0.026}$ \\
+\midrule
+full pool   & random 50\% & $+0.046$ [$+0.004$, $+0.086$] & 0.058 & 0.52 \\
+full pool   & no curation & $+0.026$ [$-0.018$, $+0.066$] & 0.27 & 1 \\
+\bottomrule
+\end{tabular}
+\caption{GMM-BC on can/mg against the full 3900-rollout pool (0.406) and for
+the pool curated by standard SPARC (0.480); 10 seeds per condition.
+Differences in mean best success rate with 95\% bootstrap CIs, Welch
+$p$-values, and Bonferroni-adjusted $p$-values across the nine tests shown
+(bold: adjusted $p < 0.05$). The metric rows reuse the original runs of
+Table~\ref{tab:training}; the anchor runs described in the text reproduce
+those runs exactly.}
+\label{tab:fullpool}
+\end{table}
+
+Table~\ref{tab:fullpool} gives three results. First, on can/mg every metric
+we originally trained on produces a worse policy than no curation in the
+literal sense of training on everything: TED by 0.166 (0.240 against
+0.406, a 41\% relative deficit), path length by 0.096, and jerk and SAL by
+0.074 each, all surviving correction across the nine tests. Under behavior
+cloning on this split, then, \rinse{}'s premise that filtering at least
+matches full-data training does not hold for either of its metrics, or for
+the two crude baselines. These comparisons confound \emph{which}
+demonstrations are kept with \emph{how many}, since every curated pool is
+half the size; Table~\ref{tab:tests} isolates the first factor and the next
+result bounds the second.
+
+Second, halving the pool at random costs little: the full pool is above the
+random 50\% subset by 0.046 (CI $[+0.004, +0.086]$, adjusted $p = 0.52$) and
+above the second random draw by 0.026 (CI spanning zero). Most of each
+metric's deficit against the full pool is therefore attributable to the
+demonstrations it selects rather than to the halving.
+
+Third, a pool curated by \emph{standard} SPARC beats all three references:
+0.480 against 0.360 and 0.380 for the random halves and 0.406 for the full
+pool, all surviving correction. The ordering holds under the
+mean-over-evaluations estimator (SPARC 0.313, full pool 0.265, random
+0.218). This is the only metric-curated pool in our study that improves on
+uncurated training. It contains 680 of the 716 successes (34.9\%) and draws
+the fewest rollouts from never-successful checkpoints
+(Table~\ref{tab:pools}). Its policy still reaches only 54\% of the oracle's
+success rate, and its advantage was measured on one split under one policy
+configuration; we report it as evidence that a correctly normalized
+spectral smoothness score can carry curation value on this data, not as a
+recommendation. It also sharpens the jerk anomaly: the SPARC and jerk pools
+both hold far more successes than random, but only SPARC's trains better.
+
+\subsection{Curating can/mh: \rinse{}'s SAL against episode length alone}
+\label{sec:mhtrain}
+
+On can/mh, every demonstration succeeds, and SAL's detection signal is
+almost entirely episode length (Section~\ref{sec:detection}). That
+predicts, for curation, that keeping the demonstrations SAL rates
+smoothest should do about as well as keeping the shortest ones. We test this
+directly: GMM-BC in the same configuration, trained on the top 150 of the
+300 can/mh demonstrations ranked by SAL, by episode length alone, and on a
+random 150, ten seeds each, evaluated in the Can environment exactly as
+above.
+
+Both rankings select largely the same demonstrations (133 of 150 in
+common) and largely the better operators: the SAL half contains 84
+better-tier and 8 worse-tier demonstrations, the length half 89 and 9, and
+the random half 47 and 55. Both curated pools train far better than random:
+SAL 0.854 $\pm$ 0.044 and length 0.878 $\pm$ 0.036 against random 0.650
+$\pm$ 0.064 ($+0.204$ and $+0.228$, both $p < 10^{-6}$ and surviving
+correction across the three tests). SAL and length are not distinguishable
+($-0.024$, CI $[-0.056, +0.010]$, $p = 0.20$; under the
+mean-over-evaluations estimator $-0.026$, $p = 0.058$), and the point
+estimate favors length.
+
+This result cuts in two directions, and we report both. It shows that
+curating can/mh by \rinse{}'s SAL does improve a policy over random
+selection of the same size, so on human data of mixed skill SAL is a useful
+filter. It also shows that the improvement is reproduced, and not
+exceeded, by the episode-length baseline that needs no trajectory analysis
+at all, which is what the length confound predicts. A curation gain
+reported for SAL on data of this kind is therefore a gain that length alone
+would have delivered.
 
 \subsection{Cross-architecture replication under a diffusion policy}
 \label{sec:crossarch}
@@ -903,8 +1026,8 @@ $+0.092$, and both comparisons survive correction. This is the largest
 effect in the diffusion grid, and it runs opposite to the behavior-cloning
 grid: a crude trajectory statistic, never proposed as a curation metric,
 shows curation value in the configuration we tested. The jerk
-pool also contains the most successes of any metric-curated pool
-(Table~\ref{tab:pools}), so the open question is less why it helps under
+pool also contains the most successes of any metric-curated pool in the
+diffusion grid (Table~\ref{tab:pools}), so the open question is less why it helps under
 diffusion than why it does not under behavior cloning. With five seeds at
 success rates near 0.1--0.2, we treat the reversal as provisional. What may
 drive it is taken up below.
@@ -997,9 +1120,9 @@ within checkpoints: jerk outranks both of \rinse{}'s metrics. Against
 operator skill it does not hold in the form we stated. Jerk's high AUROC in
 the duration-matched bands is one operator pair, and across operator pairs
 it is more often below chance than above (Section~\ref{sec:operators}). Nor do
-we claim jerk is a good curation metric: its can/mg pool had the most
-successes of any metric we trained on and produced no gain under behavior
-cloning.
+we claim jerk is a good curation metric: its can/mg pool had two-thirds more
+successes than a random one, produced no gain over random selection under
+behavior cloning, and trained worse than the full pool.
 
 \textbf{Why TED is below chance on can/mg.} The quantitative account is the
 checkpoint one of Section~\ref{sec:mg}: TED rates the rollouts of an early,
@@ -1072,9 +1195,13 @@ duration-matched bands reduce to a single operator pair on both tasks. Our
 success-label results cover the two machine-generated splits robomimic
 ships (Can and Lift), in which outcome is confounded with policy checkpoint;
 Lift has successes in only two of its five checkpoints. Downstream training
-covers can/mg only, and only the four metrics of Table~\ref{tab:training}:
-we have not trained on a SPARC-curated pool, on Lift, or on the full
-3900-demonstration pool. Extending the
+covers Can only (can/mg, and can/mh for SAL and length); we have not trained
+on Lift or on Square. The full-pool and SPARC runs were made in a rebuilt
+environment and are compared with the original runs; five re-run seeds
+reproduce the originals exactly, but the cross-grid comparisons rest on that
+check. The can/mh experiment has no full-pool arm, so it shows that SAL
+curation matches length curation, not how either compares with training on
+all 300 demonstrations. Extending the
 success-label analysis beyond policy rollouts requires datasets with real, labeled teleoperation
 failures, such as \mbox{REASSEMBLE}~\citep{reassemble} or
 DROID~\citep{droid}. Our downstream results cover two policy configurations (GMM behavior
@@ -1130,7 +1257,11 @@ Curating can/mg by TED costs a third of downstream behavior-cloning success
 against random selection of the same size, a result robust to correction
 for multiple comparisons and matched by the composition of the pool TED
 selects; the other three metrics we trained on are not distinguishable from
-random subsets. An oracle reaches 0.892 on the same pool.
+random subsets. Against training on the full pool, all four metrics lose,
+TED by 0.166, while a pool curated by standard SPARC wins (0.480 against
+0.406). On can/mh, curating by SAL beats random selection but not the
+episode-length baseline, so its curation gain there is the length gain. An
+oracle reaches 0.892 on the can/mg pool.
 
 Two things we reported earlier are weaker than we said. Raw jerk's advantage
 under duration matching is one pair of operators and does not generalize
@@ -1139,8 +1270,8 @@ which TED still ranks worst without a resolvable deficit and jerk moves
 above both baselines, rests on five seeds at low success rates in one action
 parameterization, and is provisional. What remains open is why a jerk-curated
 pool with two-thirds more successes than a random one trains no better under
-behavior cloning, and whether a SPARC-curated pool, which would contain
-nearly all the successes, does.
+behavior cloning, when a SPARC-curated pool with a similar surplus trains
+clearly better.
 
 \bibliographystyle{plainnat}
 \begin{thebibliography}{9}
